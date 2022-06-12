@@ -1,6 +1,9 @@
 package main
 
-import "flag"
+import (
+	"bytes"
+	"flag"
+)
 
 type Command struct {
 	Name string
@@ -17,6 +20,21 @@ type Flags struct {
 	*flag.FlagSet
 }
 
+func dumpFlags(fs *flag.FlagSet) string {
+	if fs == nil {
+		return ""
+	}
+
+	out := fs.Output()
+	defer fs.SetOutput(out)
+
+	buf := new(bytes.Buffer)
+	fs.SetOutput(buf)
+	fs.PrintDefaults()
+
+	return buf.String()
+}
+
 type CommandFunc func(Flags) (int, error)
 
 var commands = make(map[string]Command)
@@ -31,6 +49,24 @@ func init() {
 		Func:  cmdHelp,
 		Usage: "<command>",
 		Short: "Show help message",
+	})
+	RegisterCmd(Command{
+		Name:  "build",
+		Func:  cmdBuild,
+		Usage: "[-D <DIR>] [--config=<ninja file>] [targets...]",
+		Short: "Build targets which specified",
+		Flags: func() *flag.FlagSet {
+			fs := flag.NewFlagSet("build", flag.ExitOnError)
+			fs.String("D", ".", "directory which include .ninja file")
+			fs.String("config", "build.ninja", "specified .ninja file")
+			return fs
+		}(),
+	})
+	RegisterCmd(Command{
+		Name:  "version",
+		Func:  cmdVersion,
+		Usage: "",
+		Short: "Show version of kulang",
 	})
 }
 

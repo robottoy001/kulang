@@ -1,9 +1,8 @@
 package parser
 
-type ScannerErr struct {
-	msg string
-}
+type State uint8
 
-func (self *ScannerErr) String() string {
-	return self.msg
-}
+const (
+	PARSER_ERROR State = iota
+	PARSER_SUCCESS
+)

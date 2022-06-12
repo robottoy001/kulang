@@ -12,7 +12,7 @@ import (
 func main() {
 	switch len(os.Args) {
 	case 0:
-		fmt.Printf("arg[0] must be command")
+		fmt.Printf("arg[0] must be command\n")
 		os.Exit(KULANG_SUCCESS)
 	case 1:
 		os.Args = append(os.Args, "help")
@@ -21,7 +21,7 @@ func main() {
 	subCmdName := os.Args[1]
 	subCmd, ok := commands[subCmdName]
 	if !ok {
-		fmt.Printf("[Error] '%s' is not a recognized command", os.Args[1])
+		fmt.Printf("[Error] '%s' is not a recognized command\n", os.Args[1])
 		os.Exit(KULANG_ERROR)
 	}
 

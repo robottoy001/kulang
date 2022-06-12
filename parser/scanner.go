@@ -1,24 +1,6 @@
 package parser
 
 const (
-	TOKEN_BUILD uint8 = iota
-	TOKEN_COLON
-	TOKEN_DEFUALT
-	TOKEN_EQUALS
-	TOKEN_IDENT
-	TOKEN_INCLUDE
-	TOKEN_SUBNINJA
-	TOKEN_INDENT
-	TOKEN_NEWLINE
-	TOKEN_PIPE
-	TOKEN_PIPE2
-	TOKEN_PIPEAT
-	TOKEN_POOL
-	TOKEN_RULE
-	TOKEN_EOF
-)
-
-const (
 	SCANNER_NINJA uint8 = iota
 )
 
@@ -45,9 +27,11 @@ type Scanner struct {
 type ScannerI interface {
 	NextToken()
 	GetToken() Token
+	Reset([]byte)
+	ScanVarValue() (VarString, error)
 }
 
-func NewScanner(scanner_type uint8, content []uint8) ScannerI {
+func NewScanner(scanner_type uint8, content []byte) ScannerI {
 	switch scanner_type {
 	case SCANNER_NINJA:
 		return &NinjaScanner{&Scanner{
