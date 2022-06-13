@@ -1,15 +1,15 @@
-package parser
+package main
 
 import (
 	"io/ioutil"
 	"os"
 )
 
-type Scope struct {
-	Vaiables map[string]string
-	Parent   *Scope
-}
-
+//type Scope struct {
+//	Vaiables map[string]string
+//	Parent   *Scope
+//}
+//
 type Parser struct {
 	Scanner ScannerI
 	Scope   *Scope

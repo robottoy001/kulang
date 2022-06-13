@@ -1,11 +1,9 @@
 package main
 
-import "gitee.com/kulang/build"
-
 type Scope struct {
-	Rule   map[string]*build.Rule
-	Parent *Scope
+	Rules  map[string]*Rule
 	Vars   map[string]string
+	Parent *Scope
 }
 
 func (self *Scope) QueryVar(k string) string {
@@ -13,4 +11,12 @@ func (self *Scope) QueryVar(k string) string {
 		return v
 	}
 	return ""
+}
+
+func (self *Scope) AppendVar(k string, v string) {
+	self.Vars[k] = v
+}
+
+func (self *Scope) AppendRule(ruleName string, rule *Rule) {
+	self.Rules[ruleName] = rule
 }

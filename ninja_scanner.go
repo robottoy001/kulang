@@ -1,7 +1,8 @@
-package parser
+package main
 
 import (
 	"fmt"
+	"log"
 )
 
 const (
@@ -90,7 +91,7 @@ func (self *NinjaScanner) NextToken() {
 		case ch == byte('|'):
 			tk, err := self.scanPipe()
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 			self.Token = tk
 			return
@@ -108,7 +109,7 @@ func (self *NinjaScanner) NextToken() {
 		case (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_':
 			tk, err := self.scanIdentifier()
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 			self.Token = tk
 			return
@@ -119,7 +120,7 @@ func (self *NinjaScanner) NextToken() {
 		default:
 			// error
 			errmsg := fmt.Sprintf("unexpected token in Line: %d, Col: %d", self.Pos.LineNo, self.Pos.Offset)
-			panic(errmsg)
+			log.Fatal(errmsg)
 		}
 	}
 }
@@ -230,17 +231,19 @@ Loop:
 			// escape
 			if next == '$' || next == ' ' {
 				tmpStr += string(next)
+				self.advance()
 				break
 			}
 			// continue
 			if next == '\n' {
+				self.advance()
 				self.skipWhiteSpace()
 				break
 			}
 			if next == '\r' {
 				self.advance()
-				if self.peek() != '\n' {
-					self.backward()
+				if self.peek() == '\n' {
+					self.advance()
 				}
 				self.skipWhiteSpace()
 				break
@@ -275,6 +278,9 @@ Loop:
 		default:
 			tmpStr += string(ch)
 		}
+	}
+	if tmpStr != "" {
+		value.Append(tmpStr, strtype)
 	}
 	return value, nil
 }

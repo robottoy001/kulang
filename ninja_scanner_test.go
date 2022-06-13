@@ -1,6 +1,8 @@
-package parser
+package main
 
 import (
+	"fmt"
+	"log"
 	"testing"
 )
 
@@ -77,4 +79,61 @@ func TestScanIdentifier(t *testing.T) {
 		}
 	}
 
+}
+
+func TestScanVariable(t *testing.T) {
+	cases := map[string]string{
+		"bccc = a":             "bccc=a",
+		"ba = c$ c":            "ba=c c",
+		"ba=c$\r\na":           "ba=ca",
+		"ba=c$\r\n\t a":        "ba=ca",
+		"ba=c$\ra":             "ba=ca",
+		"ba=c$\r a":            "ba=ca",
+		"ba=c${foo}":           "ba=cbar",
+		"ba=c$$${foo}":         "ba=c$bar",
+		"ba=c$$":               "ba=c$",
+		"ba=c$$$ \r\n":         "ba=c$ ",
+		"ba = cd$ ${foo}d":     "ba=cd bard",
+		"ba = cd$\r\n ${foo}d": "ba=cdbard",
+	}
+
+	scope := Scope{
+		Vars: map[string]string{
+			"foo": "bar",
+		},
+	}
+
+	for k, v := range cases {
+		ninja_scanner := &NinjaScanner{
+			&Scanner{
+				Content: []byte(k),
+			},
+		}
+
+		// var name
+		ninja_scanner.NextToken()
+		tok := ninja_scanner.GetToken()
+		varName := tok.Literal
+
+		// =
+		ninja_scanner.NextToken()
+		tok = ninja_scanner.GetToken()
+		if tok.Type != TOKEN_EQUALS {
+			log.Fatal("Expected =, Got ", tok.Literal)
+			return
+		}
+
+		// value
+		valString, err := ninja_scanner.ScanVarValue()
+		if err != nil {
+			t.FailNow()
+		}
+
+		result := fmt.Sprintf("%s=%s", varName, valString.Eval(&scope))
+
+		if result != v {
+			fmt.Printf("Scan:[%s], expected:[%s], got:[%s]\n", k, v, result)
+			t.FailNow()
+		}
+	}
 }

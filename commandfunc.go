@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-
-	"gitee.com/kulang/build"
 )
 
 func cmdHelp(flags Flags) (int, error) {
@@ -46,12 +44,12 @@ func cmdBuild(flags Flags) (int, error) {
 	dir := flags.FlagSet.Lookup("D").Value.String()
 	configFile := flags.FlagSet.Lookup("config").Value.String()
 
-	option := &build.BuildOption{
+	option := &BuildOption{
 		BuildDir:   dir,
 		ConfigFile: configFile,
 	}
 
-	App := build.NewAppBuild(option)
+	App := NewAppBuild(option)
 	err := App.RunBuild()
 	if err != nil {
 		return KULANG_ERROR, err

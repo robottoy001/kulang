@@ -1,4 +1,4 @@
-package parser
+package main
 
 const (
 	SCANNER_NINJA uint8 = iota

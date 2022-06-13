@@ -1,11 +1,9 @@
-package build
+package main
 
 import (
 	"fmt"
 	"log"
 	"path"
-
-	"gitee.com/kulang/parser"
 )
 
 type BuildOption struct {
@@ -15,11 +13,17 @@ type BuildOption struct {
 
 type AppBuild struct {
 	Option *BuildOption
+	Scope  *Scope
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
 	return &AppBuild{
 		Option: option,
+		Scope: &Scope{
+			Rules:  make(map[string]*Rule),
+			Vars:   make(map[string]string),
+			Parent: nil,
+		},
 	}
 }
 
@@ -28,7 +32,7 @@ func (self *AppBuild) RunBuild() error {
 
 	// parser load .ninja file
 	// default, Ninja parser & scanner
-	p := parser.NewParser()
+	p := NewParser(self.Scope)
 	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
