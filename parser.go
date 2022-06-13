@@ -12,6 +12,7 @@ import (
 //
 type Parser struct {
 	Scanner ScannerI
+	App     *AppBuild
 	Scope   *Scope
 	// node,edges
 }
@@ -22,11 +23,12 @@ type ParserI interface {
 }
 
 // default: Ninja parser
-func NewParser(scope *Scope) ParserI {
+func NewParser(app *AppBuild) ParserI {
 	return &NinjaParser{
 		&Parser{
 			Scanner: NewScanner(SCANNER_NINJA, []byte{}),
-			Scope:   scope,
+			App:     app,
+			Scope:   app.Scope,
 		},
 	}
 }

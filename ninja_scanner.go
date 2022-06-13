@@ -78,12 +78,12 @@ func (self *NinjaScanner) NextToken() {
 			}
 			self.Pos.LineNo += 1
 			self.Token.Type = TOKEN_NEWLINE
-			continue
+			return
 		case ch == byte('\n'):
 			self.Pos.LineNo += 1
 			self.advance()
 			self.Token.Type = TOKEN_NEWLINE
-			continue
+			return
 		case ch == byte('#'):
 			self.advance()
 			self.skipComment()
@@ -216,11 +216,12 @@ Loop:
 	return tk, nil
 }
 
-func (self *NinjaScanner) ScanVarValue() (VarString, error) {
+func (self *NinjaScanner) ScanVarValue(path bool) (VarString, error) {
 	self.skipWhiteSpace()
 	var value VarString
 	var tmpStr string
 	var strtype StrType = ORGINAL
+	var err error = nil
 Loop:
 	for {
 		ch := self.peek()
@@ -229,7 +230,7 @@ Loop:
 		case ch == '$':
 			next := self.peek()
 			// escape
-			if next == '$' || next == ' ' {
+			if next == ':' || next == '$' || next == ' ' {
 				tmpStr += string(next)
 				self.advance()
 				break
@@ -250,16 +251,19 @@ Loop:
 			}
 
 			// variable name
-			if next == '{' {
+			if next == '{' || self.isIdentifier(next) {
 				// save normal string if have
 				if tmpStr != "" {
 					value.Append(tmpStr, strtype)
 				}
-				tmpStr = ""
 
+				if next == '{' {
+					self.advance()
+				}
+
+				tmpStr = ""
 				// scan ${varname}
 				strtype = VARIABLE
-				self.advance()
 				tok, err := self.scanIdentifier()
 				if err != nil {
 					panic(err)
@@ -273,6 +277,11 @@ Loop:
 			break
 		case ch == '\r' || ch == '\n':
 			break Loop
+		case ch == ' ' || ch == '|' || ch == ':':
+			if path {
+				break Loop
+			}
+			tmpStr += string(ch)
 		case ch == INVALID_CHAR:
 			break Loop
 		default:
@@ -282,5 +291,5 @@ Loop:
 	if tmpStr != "" {
 		value.Append(tmpStr, strtype)
 	}
-	return value, nil
+	return value, err
 }

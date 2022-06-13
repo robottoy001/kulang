@@ -124,7 +124,7 @@ func TestScanVariable(t *testing.T) {
 		}
 
 		// value
-		valString, err := ninja_scanner.ScanVarValue()
+		valString, err := ninja_scanner.ScanVarValue(false)
 		if err != nil {
 			t.FailNow()
 		}

@@ -1,0 +1,3 @@
+rule FOO
+    command = gcc ${in} $out
+    description = build by gcc

@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type StrType uint8
 
 const (
@@ -28,6 +30,19 @@ func (self *VarString) Eval(scope *Scope) string {
 			Value += v.Str
 		} else if v.Type == VARIABLE {
 			Value += scope.QueryVar(v.Str)
+		}
+	}
+	return Value
+}
+
+func (self *VarString) String() string {
+	var Value string
+	for _, v := range self.Str {
+		if v.Type == ORGINAL {
+			Value += v.Str
+		} else if v.Type == VARIABLE {
+			Value += fmt.Sprintf("${%s}", v.Str)
+			fmt.Println(v.Str)
 		}
 	}
 	return Value

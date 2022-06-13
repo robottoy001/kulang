@@ -28,7 +28,7 @@ type ScannerI interface {
 	NextToken()
 	GetToken() Token
 	Reset([]byte)
-	ScanVarValue() (VarString, error)
+	ScanVarValue(bool) (VarString, error)
 }
 
 func NewScanner(scanner_type uint8, content []byte) ScannerI {

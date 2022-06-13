@@ -10,25 +10,57 @@ type NinjaParser struct {
 }
 
 func (self *NinjaParser) Parse() error {
+	fmt.Println("parsing")
 	self.Scanner.NextToken()
 	tok := self.Scanner.GetToken()
 
 	switch {
+	case tok.Type == TOKEN_DEFUALT:
+		self.parseDefault()
+		break
+	case tok.Type == TOKEN_BUILD:
+		self.parseBuild()
+		break
 	case tok.Type == TOKEN_RULE:
 		self.parseRule()
 		break
 	case tok.Type == TOKEN_IDENT:
 		varName, varValue := self.parseVariable()
-		self.Scope.AppendVar(varName, varValue)
+		self.Scope.AppendVar(varName, varValue.Eval(self.Scope))
 		break
 	}
-	fmt.Printf("token type: %d\n", tok.Type)
+
 	if tok.Literal != "" {
 		fmt.Println(tok.Literal)
 	}
-	fmt.Println("parsing")
 	fmt.Println("parser, finished")
 	return nil
+}
+
+func (self *NinjaParser) parseDefault() {
+	// output list
+	for {
+		out, err := self.Scanner.ScanVarValue(true)
+		if len(out.Str) == 0 || err != nil {
+			break
+		}
+		path := out.Eval(self.Scope)
+		self.App.AddDefaults(path)
+	}
+}
+
+func (self *NinjaParser) parseBuild() {
+	// out
+
+	// :
+	// rule name
+	// input list
+	// |
+	// implict dependence
+	// ||
+	// order dependence
+	// |@
+	// validation
 }
 
 func (self *NinjaParser) parseRule() {
@@ -42,7 +74,7 @@ func (self *NinjaParser) parseRule() {
 	self.Scanner.NextToken()
 	tok = self.Scanner.GetToken()
 	if tok.Type != TOKEN_NEWLINE {
-		log.Fatal("expected NEWLINE, got " + tok.Literal)
+		log.Fatal("expected NEWLINE, got "+tok.Literal, ", type: ", tok.Type)
 		return
 	}
 
@@ -52,7 +84,9 @@ func (self *NinjaParser) parseRule() {
 	for {
 		self.Scanner.NextToken()
 		tok := self.Scanner.GetToken()
-
+		if tok.Type != TOKEN_IDENT {
+			break
+		}
 		varName, varValue := self.parseVariable()
 		rule.AppendVar(varName, varValue)
 	}
@@ -60,7 +94,7 @@ func (self *NinjaParser) parseRule() {
 	self.Scope.AppendRule(ruleName, rule)
 }
 
-func (self *NinjaParser) parseVariable() (string, string) {
+func (self *NinjaParser) parseVariable() (string, VarString) {
 	tok := self.Scanner.GetToken()
 	varName := tok.Literal
 
@@ -69,23 +103,23 @@ func (self *NinjaParser) parseVariable() (string, string) {
 	tok = self.Scanner.GetToken()
 	if tok.Type != TOKEN_EQUALS {
 		log.Fatal("Expected =, Got ", tok.Literal)
-		return "", ""
+		return "", VarString{}
 	}
 
 	varValue, err := self.parseVarValue()
 	if err != nil {
 		log.Fatal("Parse Value fail")
-		return varName, ""
+		return varName, VarString{}
 	}
 
 	return varName, varValue
 }
 
-func (self *NinjaParser) parseVarValue() (string, error) {
-	valString, err := self.Scanner.ScanVarValue()
+func (self *NinjaParser) parseVarValue() (VarString, error) {
+	valString, err := self.Scanner.ScanVarValue(false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return valString.Eval(self.Scope), err
+	return valString, err
 }
