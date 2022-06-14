@@ -47,3 +47,7 @@ func (self *VarString) String() string {
 	}
 	return Value
 }
+
+func (self *VarString) Empty() bool {
+	return len(self.Str) == 0
+}

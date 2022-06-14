@@ -2,7 +2,7 @@ package main
 
 type Session struct {
 	// pool
-	Pool *Pool
+	Pools map[string]*Pool
 	// edges
 	Edges []*Edge
 

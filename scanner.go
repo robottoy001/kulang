@@ -8,24 +8,40 @@ const (
 	INVALID_CHAR = 255
 )
 
+type Location struct {
+	LineNo    uint32
+	Start     uint32
+	End       uint32
+	LineStart uint32
+}
+
 type Token struct {
 	Type    uint8
 	Literal string
+	Loc     Location
 }
 
 type Position struct {
-	Offset uint32
-	LineNo uint32
+	Offset    uint32
+	LineNo    uint32
+	LineStart uint32
+}
+
+func (self *Position) NewLine() {
+	self.LineNo += 1
+	self.LineStart = self.Offset
 }
 
 type Scanner struct {
-	Content []uint8
-	Token   Token
-	Pos     Position
+	Content   []uint8
+	Token     Token
+	LastToken Token
+	Pos       Position
 }
 
 type ScannerI interface {
-	NextToken()
+	NextToken() Token
+	PeekToken(uint8) bool
 	GetToken() Token
 	Reset([]byte)
 	ScanVarValue(bool) (VarString, error)

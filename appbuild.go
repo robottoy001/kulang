@@ -18,23 +18,22 @@ type AppBuild struct {
 	// all nodes map
 	Nodes    map[string]*Node
 	Defaults []*Node
+	Pools    map[string]*Pool
+	Edges    []*Edge
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
 	return &AppBuild{
-		Option: option,
-		Scope: &Scope{
-			Rules:  make(map[string]*Rule),
-			Vars:   make(map[string]string),
-			Parent: nil,
-		},
+		Option:   option,
+		Scope:    NewScope(nil),
 		Nodes:    make(map[string]*Node),
 		Defaults: []*Node{},
+		Pools:    make(map[string]*Pool),
+		Edges:    []*Edge{},
 	}
 }
 
 func (self *AppBuild) RunBuild() error {
-	fmt.Println("start building...")
 
 	// parser load .ninja file
 	// default, Ninja parser & scanner
@@ -47,9 +46,11 @@ func (self *AppBuild) RunBuild() error {
 
 	err = p.Parse()
 	if err != nil {
+		log.Fatal(err)
 		return err
 	}
 
+	fmt.Println("start building...")
 	err = self._RunBuild()
 	if err != nil {
 		return err
@@ -57,7 +58,7 @@ func (self *AppBuild) RunBuild() error {
 	return nil
 }
 
-func (self *AppBuild) findNode(path string) *Node {
+func (self *AppBuild) FindNode(path string) *Node {
 	if node, ok := self.Nodes[path]; ok {
 		return node
 	}
@@ -65,7 +66,11 @@ func (self *AppBuild) findNode(path string) *Node {
 }
 
 func (self *AppBuild) AddDefaults(path string) {
-	self.Defaults = append(self.Defaults, self.findNode(path))
+	self.Defaults = append(self.Defaults, self.FindNode(path))
+}
+
+func (self *AppBuild) AddPool(poolName string, depth uint32) {
+	self.Pools[poolName] = NewPool(poolName, depth)
 }
 
 func (self *AppBuild) _RunBuild() error {
