@@ -24,12 +24,14 @@ func testSkipComment(s string) State {
 	ninja_scanner := &NinjaScanner{
 		&Scanner{
 			Content: []byte(s),
+			Pos: &Position{
+				Offset: 0,
+				LineNo: 0,
+			},
 		},
 	}
 
-	ninja_scanner.NextToken()
-	token := ninja_scanner.GetToken()
-	if token.Type != TOKEN_PIPE {
+	if !ninja_scanner.PeekToken(TOKEN_PIPE) {
 		return PARSER_ERROR
 	}
 	return PARSER_SUCCESS
@@ -46,6 +48,10 @@ func TestScanPipe(t *testing.T) {
 		ninja_scanner := &NinjaScanner{
 			&Scanner{
 				Content: []byte(k),
+				Pos: &Position{
+					Offset: 0,
+					LineNo: 0,
+				},
 			},
 		}
 		ninja_scanner.NextToken()
@@ -70,6 +76,10 @@ func TestScanIdentifier(t *testing.T) {
 		ninja_scanner := &NinjaScanner{
 			&Scanner{
 				Content: []byte(k),
+				Pos: &Position{
+					Offset: 0,
+					LineNo: 0,
+				},
 			},
 		}
 		ninja_scanner.NextToken()
@@ -107,6 +117,10 @@ func TestScanVariable(t *testing.T) {
 		ninja_scanner := &NinjaScanner{
 			&Scanner{
 				Content: []byte(k),
+				Pos: &Position{
+					Offset: 0,
+					LineNo: 0,
+				},
 			},
 		}
 

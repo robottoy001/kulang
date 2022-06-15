@@ -5,6 +5,11 @@ type Rule struct {
 	Vars map[string]VarString
 }
 
+var PhonyRule = &Rule{
+	Name: "phony",
+	Vars: map[string]VarString{},
+}
+
 func NewRule(name string) *Rule {
 	return &Rule{
 		Name: name,

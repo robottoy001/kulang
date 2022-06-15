@@ -50,6 +50,7 @@ func cmdBuild(flags Flags) (int, error) {
 	}
 
 	App := NewAppBuild(option)
+	App.Initialize()
 	err := App.RunBuild()
 	if err != nil {
 		return KULANG_ERROR, err

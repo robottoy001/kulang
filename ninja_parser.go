@@ -218,6 +218,7 @@ func (self *NinjaParser) parseBuild() {
 	}
 
 	edge := NewEdge(rule)
+	self.App.AddBuild(edge)
 	// variable
 	// add variable to edge
 	scope := NewScope(self.Scope)
@@ -227,6 +228,14 @@ func (self *NinjaParser) parseBuild() {
 		//fmt.Printf("BUILD VAR: %s = %s\n", varName, varValue.Eval(scope))
 	}
 	edge.Scope = scope
+
+	// check pool if exist
+	poolName := self.Scope.QueryVar("pool")
+	if poolName != "" {
+		pool := self.App.FindPool(poolName)
+		edge.Pool = pool
+	}
+
 }
 
 func (self *NinjaParser) parseRule() {

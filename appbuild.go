@@ -33,6 +33,10 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 	}
 }
 
+func (self *AppBuild) Initialize() {
+	self.Scope.AppendRule(PhonyRule.Name, PhonyRule)
+}
+
 func (self *AppBuild) RunBuild() error {
 
 	// parser load .ninja file
@@ -71,6 +75,17 @@ func (self *AppBuild) AddDefaults(path string) {
 
 func (self *AppBuild) AddPool(poolName string, depth int) {
 	self.Pools[poolName] = NewPool(poolName, depth)
+}
+
+func (self *AppBuild) FindPool(poolName string) *Pool {
+	if pool, ok := self.Pools[poolName]; ok {
+		return pool
+	}
+	return nil
+}
+
+func (self *AppBuild) AddBuild(edge *Edge) {
+	self.Edges = append(self.Edges, edge)
 }
 
 func (self *AppBuild) _RunBuild() error {
