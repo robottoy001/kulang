@@ -2,10 +2,10 @@ package main
 
 type Pool struct {
 	Name  string
-	Depth uint32
+	Depth int
 }
 
-func NewPool(name string, depth uint32) *Pool {
+func NewPool(name string, depth int) *Pool {
 	return &Pool{
 		Name:  name,
 		Depth: depth,

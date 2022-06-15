@@ -69,7 +69,7 @@ func (self *AppBuild) AddDefaults(path string) {
 	self.Defaults = append(self.Defaults, self.FindNode(path))
 }
 
-func (self *AppBuild) AddPool(poolName string, depth uint32) {
+func (self *AppBuild) AddPool(poolName string, depth int) {
 	self.Pools[poolName] = NewPool(poolName, depth)
 }
 

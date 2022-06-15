@@ -38,5 +38,8 @@ func (self *Scope) QueryRule(ruleName string) *Rule {
 		return rule
 	}
 
+	if self.Parent != nil {
+		return self.Parent.QueryRule(ruleName)
+	}
 	return nil
 }

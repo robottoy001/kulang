@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"testing"
 )
@@ -29,7 +30,10 @@ func TestParseRule(t *testing.T) {
 
 	parser.Parse()
 
+	fmt.Println(scope.Rules)
+
 	if _, ok := scope.Rules["FOO"]; !ok {
+		fmt.Println(ok)
 		t.FailNow()
 	}
 }

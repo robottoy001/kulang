@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"path"
+	"strconv"
 )
 
 type NinjaParser struct {
@@ -10,11 +12,12 @@ type NinjaParser struct {
 }
 
 func (self *NinjaParser) Parse() error {
-	fmt.Println("parsing")
+	//fmt.Println("parsing")
 
 Loop:
 	for {
 		tok := self.Scanner.NextToken()
+		//fmt.Printf("---parse %d  %s\n", tok.Type, tok.Literal)
 
 		switch {
 		case tok.Type == TOKEN_SUBNINJA:
@@ -31,23 +34,35 @@ Loop:
 		case tok.Type == TOKEN_RULE:
 			self.parseRule()
 			break
+		case tok.Type == TOKEN_POOL:
+			self.parsePool()
+			break
 		case tok.Type == TOKEN_IDENT:
+			self.Scanner.BackwardToken()
+			//fmt.Printf("INDENT, start\n")
 			varName, varValue := self.parseVariable()
 			self.Scope.AppendVar(varName, varValue.Eval(self.Scope))
+			//fmt.Printf("INDENT END %s = %s\n", varName, varValue.Eval(self.Scope))
 			break
 		case tok.Type == TOKEN_NEWLINE:
+			//	fmt.Printf("NewLINE in Parse\n")
 			break
 		case tok.Type == TOKEN_EOF:
+			//fmt.Printf("Got EOF??\n")
 			break Loop
+		case tok.Type == TOKEN_INDENT:
+			break
 		default:
-			err := fmt.Errorf("Unexpected token, type: %d, LineNo: %d, Col: %d\n", tok.Type, tok.Loc.LineNo, tok.Loc.Start-tok.Loc.LineStart)
+			err := fmt.Errorf("Parse: Unexpected token, type: %d, LineNo: %d, Col: %d\n", tok.Type, tok.Loc.LineNo, tok.Loc.Start-tok.Loc.LineStart)
 			return err
 		}
 	}
 
-	fmt.Println("parser, finished")
+	//fmt.Println("parser, finished")
 	return nil
 }
+
+var indent int = 0
 
 func (self *NinjaParser) parseInclude(new_scope bool) {
 	varString, err := self.parseVarValue()
@@ -55,7 +70,7 @@ func (self *NinjaParser) parseInclude(new_scope bool) {
 		log.Fatal("parseNinja fail", err)
 		return
 	}
-	path := varString.Eval(self.Scope)
+	relative_path := varString.Eval(self.Scope)
 
 	// new parser with new scope
 	app := self.App
@@ -65,7 +80,8 @@ func (self *NinjaParser) parseInclude(new_scope bool) {
 	subParser := NewParser(app)
 
 	// load & parse
-	err = subParser.Load(path)
+	real_path := path.Join(self.App.Option.BuildDir, relative_path)
+	err = subParser.Load(real_path)
 	if err != nil {
 		log.Fatal("parseSubNinja fail", err)
 		return
@@ -85,12 +101,13 @@ func (self *NinjaParser) parseDefault() {
 		if len(out.Str) == 0 || err != nil {
 			break
 		}
-		path := out.Eval(self.Scope)
-		self.App.AddDefaults(path)
+		target := out.Eval(self.Scope)
+		self.App.AddDefaults(target)
 	}
 }
 
 func (self *NinjaParser) parseBuild() {
+	//fmt.Printf("ParseBuild-----------begin--\n")
 	// out
 	var outs []VarString
 	for {
@@ -100,7 +117,8 @@ func (self *NinjaParser) parseBuild() {
 		}
 		outs = append(outs, out)
 	}
-	fmt.Println(outs)
+	//fmt.Println(outs)
+
 	// |
 	// implict out
 	var imOuts []VarString
@@ -113,7 +131,7 @@ func (self *NinjaParser) parseBuild() {
 			imOuts = append(imOuts, out)
 		}
 	}
-	fmt.Println("implict Out: ", imOuts)
+	//fmt.Println("implict Out: ", imOuts)
 
 	// :
 	if !self.Scanner.PeekToken(TOKEN_COLON) {
@@ -127,7 +145,7 @@ func (self *NinjaParser) parseBuild() {
 		return
 	}
 	ruleName := self.Scanner.GetToken().Literal
-	fmt.Printf("ruleName %s\n", ruleName)
+	//fmt.Printf("ruleName %s\n", ruleName)
 
 	// input list
 	var ins []VarString
@@ -138,7 +156,7 @@ func (self *NinjaParser) parseBuild() {
 		}
 		ins = append(ins, in)
 	}
-	fmt.Println("ins: ", imOuts)
+	//fmt.Println("ins: ", imOuts)
 	// |
 	// implicit dependence
 	var imIns []VarString
@@ -151,7 +169,7 @@ func (self *NinjaParser) parseBuild() {
 			imIns = append(imIns, in)
 		}
 	}
-	fmt.Println("implicit ins: ", imIns)
+	//fmt.Printf("implicit ins: %v\n", imIns)
 
 	// ||
 	// order dependence
@@ -165,7 +183,7 @@ func (self *NinjaParser) parseBuild() {
 			orIns = append(orIns, in)
 		}
 	}
-	fmt.Println("implicit ins: ", orIns)
+	//fmt.Printf("implicit ins: %v\n", orIns)
 
 	// |@
 	// validation
@@ -179,17 +197,20 @@ func (self *NinjaParser) parseBuild() {
 			valids = append(valids, in)
 		}
 	}
-	fmt.Println("valids ins: ", valids)
+	//fmt.Println("valids ins: ", valids)
 
 	// new line
 	// expected newline
 	if !self.Scanner.PeekToken(TOKEN_NEWLINE) {
-		log.Fatal("expected NEWLINE, got "+self.Scanner.GetToken().Literal, ", type: ", self.Scanner.GetToken().Type)
+		log.Panicln("expected NEWLINE, got ", self.Scanner.GetToken().Literal,
+			",type: ", self.Scanner.GetToken().Type,
+			",LineNo: ", self.Scanner.GetToken().Loc.LineNo,
+			",Col: ", self.Scanner.GetToken().Loc.Start-self.Scanner.GetToken().Loc.LineStart)
 		return
 	}
 
 	// new Edge
-	fmt.Println(self.Scope)
+	//fmt.Println(self.Scope)
 	rule := self.Scope.QueryRule(ruleName)
 	if rule == nil {
 		log.Fatal("Rule: ", ruleName, " doesn't exist")
@@ -200,13 +221,10 @@ func (self *NinjaParser) parseBuild() {
 	// variable
 	// add variable to edge
 	scope := NewScope(self.Scope)
-	for {
-		tok := self.Scanner.NextToken()
-		if tok.Type != TOKEN_IDENT {
-			break
-		}
+	for self.Scanner.PeekToken(TOKEN_INDENT) {
 		varName, varValue := self.parseVariable()
 		scope.AppendVar(varName, varValue.Eval(scope))
+		//fmt.Printf("BUILD VAR: %s = %s\n", varName, varValue.Eval(scope))
 	}
 	edge.Scope = scope
 }
@@ -214,46 +232,52 @@ func (self *NinjaParser) parseBuild() {
 func (self *NinjaParser) parseRule() {
 	// rule name
 	// expected TOKEN_IDENT
-	tok := self.Scanner.NextToken()
+	tok := self.Scanner.ScanIdent()
 	ruleName := tok.Literal
+	//fmt.Printf("ruleName: %s\n", ruleName)
+	//log.Println("Rule, got ", self.Scanner.GetToken().Literal,
+	//	",type: ", self.Scanner.GetToken().Type,
+	//	",LineNo: ", self.Scanner.GetToken().Loc.LineNo,
+	//	",Col: ", self.Scanner.GetToken().Loc.Start-self.Scanner.GetToken().Loc.LineStart)
 
 	// expected newline
 	if !self.Scanner.PeekToken(TOKEN_NEWLINE) {
-		log.Fatal("expected NEWLINE, got ", self.Scanner.GetToken().Literal, ", type: ", self.Scanner.GetToken().Type)
+		log.Panicln("expected NEWLINE, got ", self.Scanner.GetToken().Literal,
+			",type: ", self.Scanner.GetToken().Type,
+			",LineNo: ", self.Scanner.GetToken().Loc.LineNo,
+			",Col: ", self.Scanner.GetToken().Loc.Start-self.Scanner.GetToken().Loc.LineStart)
 		return
 	}
 
 	rule := NewRule(ruleName)
 
 	// add variable in Rule
-	for {
-		tok := self.Scanner.NextToken()
-		if tok.Type != TOKEN_IDENT {
-			break
-		}
+	for self.Scanner.PeekToken(TOKEN_INDENT) {
 		varName, varValue := self.parseVariable()
 		rule.AppendVar(varName, varValue)
 	}
 
 	self.Scope.AppendRule(ruleName, rule)
+	//fmt.Printf("%v\n", self.Scope.Rules)
 }
 
 func (self *NinjaParser) parseVariable() (string, VarString) {
-	tok := self.Scanner.GetToken()
+	//fmt.Printf("--------Begin parse Variable--------------\n")
+	tok := self.Scanner.ScanIdent()
 	varName := tok.Literal
 
 	// expectd '='
-	tok = self.Scanner.NextToken()
-	if tok.Type != TOKEN_EQUALS {
-		log.Fatal("Expected =, Got ", tok.Literal)
+	if !self.Scanner.PeekToken(TOKEN_EQUALS) {
+		log.Fatal("Expected =, Got", tok.Literal)
 		return "", VarString{}
 	}
 
-	varValue, err := self.parseVarValue()
+	varValue, err := self.Scanner.ScanVarValue(false)
 	if err != nil {
 		log.Fatal("Parse Value fail")
 		return varName, VarString{}
 	}
+	//fmt.Printf("--------End parse Variable--------------\n")
 
 	return varName, varValue
 }
@@ -274,4 +298,30 @@ func (self *NinjaParser) parseVarValue() (VarString, error) {
 	}
 
 	return valString, err
+}
+
+func (self *NinjaParser) parsePool() {
+	tok := self.Scanner.NextToken()
+	poolName := tok.Literal
+
+	// expected newline
+	if !self.Scanner.PeekToken(TOKEN_NEWLINE) {
+		log.Panicln("expected NEWLINE, got ", self.Scanner.GetToken().Literal,
+			",type: ", self.Scanner.GetToken().Type,
+			",LineNo: ", self.Scanner.GetToken().Loc.LineNo,
+			",Col: ", self.Scanner.GetToken().Loc.Start-self.Scanner.GetToken().Loc.LineStart)
+		return
+	}
+
+	// add variable in Rule
+	for self.Scanner.PeekToken(TOKEN_INDENT) {
+		varName, varValue := self.parseVariable()
+		if varName == "depth" {
+			//depth, _ := strconv.ParseUint(varValue.Eval(self.Scope), 10, 32)
+			depth, _ := strconv.Atoi(varValue.Eval(self.Scope))
+			//fmt.Printf("Got POOL depth = %d\n", depth)
+			self.App.AddPool(poolName, depth)
+		}
+	}
+
 }

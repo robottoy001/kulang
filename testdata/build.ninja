@@ -1,1 +1,2 @@
 build  src/base/command_line.o | src/base/a.o : cxx ../src/base/command_line.cc | src/base/command_utils.o || src/base/command_cmd.h |@ src/base/command_valid.o
+    pool =  boo_bar

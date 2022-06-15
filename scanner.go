@@ -27,24 +27,22 @@ type Position struct {
 	LineStart uint32
 }
 
-func (self *Position) NewLine() {
-	self.LineNo += 1
-	self.LineStart = self.Offset
-}
 
 type Scanner struct {
 	Content   []uint8
 	Token     Token
 	LastToken Token
-	Pos       Position
+	Pos       *Position
 }
 
 type ScannerI interface {
 	NextToken() Token
 	PeekToken(uint8) bool
+	BackwardToken()
 	GetToken() Token
 	Reset([]byte)
 	ScanVarValue(bool) (VarString, error)
+	ScanIdent() Token
 }
 
 func NewScanner(scanner_type uint8, content []byte) ScannerI {
@@ -52,7 +50,7 @@ func NewScanner(scanner_type uint8, content []byte) ScannerI {
 	case SCANNER_NINJA:
 		return &NinjaScanner{&Scanner{
 			Content: content,
-			Pos: Position{
+			Pos: &Position{
 				Offset: 0,
 				LineNo: 0,
 			},
