@@ -46,23 +46,25 @@ func (self *Edge) EvalInOut() {
 
 	for _, in := range self.Ins {
 		buffer.WriteString(in.Eval(self.Scope))
+		buffer.WriteString(" ")
 	}
 
-	self.Scope.AppendVar("in", buffer.String())
+	self.Scope.AppendVar("in", strings.TrimRight(buffer.String(), " "))
 	buffer.Reset()
 
 	for _, out := range self.Outs {
 		buffer.WriteString(out.Eval(self.Scope))
+		buffer.WriteString(" ")
 	}
-	self.Scope.AppendVar("out", buffer.String())
+	self.Scope.AppendVar("out", strings.TrimRight(buffer.String(), " "))
 
-	fmt.Printf("out: %s\n", buffer.String())
+	//fmt.Printf("out: %s\n", buffer.String())
 }
 
 func (self *Edge) EvalCommand() string {
 	command := self.Rule.QueryVar("command")
 	self.EvalInOut()
 	v := command.Eval(self.Scope)
-	fmt.Printf("real command : %s\n", v)
+	fmt.Printf("%s\n", v)
 	return v
 }
