@@ -218,8 +218,6 @@ func (self *NinjaParser) parseBuild() {
 	}
 
 	edge := NewEdge(rule)
-	edge.Outs = append(edge.Outs, outs...)
-	edge.Ins = append(edge.Ins, ins...)
 
 	self.App.AddBuild(edge)
 	// variable
@@ -239,7 +237,15 @@ func (self *NinjaParser) parseBuild() {
 		edge.Pool = pool
 	}
 
-	edge.EvalCommand()
+	for _, o := range outs {
+		self.App.AddOut(edge, o.Eval(scope))
+	}
+
+	for _, i := range ins {
+		self.App.AddIn(edge, i.Eval(scope))
+	}
+
+	//edge.EvalCommand()
 }
 
 func (self *NinjaParser) parseRule() {

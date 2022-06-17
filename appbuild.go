@@ -9,6 +9,7 @@ import (
 type BuildOption struct {
 	ConfigFile string
 	BuildDir   string
+	Targets    []string
 }
 
 type AppBuild struct {
@@ -88,6 +89,56 @@ func (self *AppBuild) AddBuild(edge *Edge) {
 	self.Edges = append(self.Edges, edge)
 }
 
+func (self *AppBuild) AddOut(edge *Edge, path string) {
+	node := self.FindNode(path)
+	// TODO: ignore if exist
+	node.InEdge = edge
+	edge.Outs = append(edge.Outs, node)
+}
+
+func (self AppBuild) AddIn(edge *Edge, path string) {
+	node := self.FindNode(path)
+	node.OutEdges = append(node.OutEdges, edge)
+
+	edge.Ins = append(edge.Ins, node)
+}
+
+func (self *AppBuild) getTargets() []*Node {
+	var nodesToBuild []*Node
+	if len(self.Option.Targets) > 0 {
+		// return self.Option.Targets
+		for _, path := range self.Option.Targets {
+			if node := self.FindNode(path); node != nil {
+				nodesToBuild = append(nodesToBuild, node)
+			}
+		}
+		return nodesToBuild
+	}
+
+	if len(self.Defaults) > 0 {
+		return self.Defaults
+	}
+
+	for _, e := range self.Edges {
+		for _, o := range e.Outs {
+			if len(o.OutEdges) == 0 {
+				nodesToBuild = append(nodesToBuild, o)
+			}
+		}
+	}
+
+	return nodesToBuild
+}
+
 func (self *AppBuild) _RunBuild() error {
+	// find target
+	// 1. from commandline
+	// 2. from default rule
+	// 3. root node which don't have out edge
+	targets := self.getTargets()
+	for _, t := range targets {
+		fmt.Printf("%s\n", t.Path)
+	}
+
 	return nil
 }

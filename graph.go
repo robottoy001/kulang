@@ -16,9 +16,9 @@ type Edge struct {
 	Rule        *Rule
 	Pool        *Pool
 	Scope       *Scope
-	Outs        []VarString
-	Ins         []VarString
-	Validations []VarString
+	Outs        []*Node
+	Ins         []*Node
+	Validations []*Node
 }
 
 func NewNode(path string) *Node {
@@ -35,9 +35,9 @@ func NewEdge(rule *Rule) *Edge {
 		Rule:        rule,
 		Pool:        NewPool("default", 0),
 		Scope:       NewScope(nil),
-		Outs:        []VarString{},
-		Ins:         []VarString{},
-		Validations: []VarString{},
+		Outs:        []*Node{},
+		Ins:         []*Node{},
+		Validations: []*Node{},
 	}
 }
 
@@ -45,7 +45,7 @@ func (self *Edge) EvalInOut() {
 	buffer := new(strings.Builder)
 
 	for _, in := range self.Ins {
-		buffer.WriteString(in.Eval(self.Scope))
+		buffer.WriteString(in.Path)
 		buffer.WriteString(" ")
 	}
 
@@ -53,7 +53,7 @@ func (self *Edge) EvalInOut() {
 	buffer.Reset()
 
 	for _, out := range self.Outs {
-		buffer.WriteString(out.Eval(self.Scope))
+		buffer.WriteString(out.Path)
 		buffer.WriteString(" ")
 	}
 	self.Scope.AppendVar("out", strings.TrimRight(buffer.String(), " "))

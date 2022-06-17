@@ -47,6 +47,7 @@ func cmdBuild(flags Flags) (int, error) {
 	option := &BuildOption{
 		BuildDir:   dir,
 		ConfigFile: configFile,
+		Targets:    flags.Args(),
 	}
 
 	App := NewAppBuild(option)
