@@ -245,6 +245,10 @@ func (self *NinjaParser) parseBuild() {
 		self.App.AddIn(edge, i.Eval(scope))
 	}
 
+	for _, i := range imIns {
+		self.App.AddIn(edge, i.Eval(scope))
+	}
+
 	//edge.EvalCommand()
 }
 
