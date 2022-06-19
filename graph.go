@@ -65,6 +65,19 @@ func NewEdge(rule *Rule) *Edge {
 	}
 }
 
+func (self *Edge) AllInputReady() bool {
+	for _, in := range self.Ins {
+		if in.InEdge != nil && !in.InEdge.OutPutReady {
+			return false
+		}
+	}
+	return true
+}
+
+func (self *Edge) IsPhony() bool {
+	return self.Rule.Name == "phony"
+}
+
 func (self *Edge) EvalInOut() {
 	buffer := new(strings.Builder)
 

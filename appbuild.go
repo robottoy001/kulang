@@ -22,6 +22,7 @@ type AppBuild struct {
 	Defaults []*Node
 	Pools    map[string]*Pool
 	Edges    []*Edge
+	Runner   *Runner
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
@@ -32,6 +33,7 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 		Defaults: []*Node{},
 		Pools:    make(map[string]*Pool),
 		Edges:    []*Edge{},
+		Runner:   NewRunner(),
 	}
 }
 
@@ -143,7 +145,7 @@ func (self *AppBuild) getTargets() []*Node {
 
 func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 	for _, o := range edge.Outs {
-		if edge.Rule.Name == "phony" {
+		if edge.IsPhony() {
 			if edge.Ins == nil && !o.Exist() {
 				return true
 			}
@@ -188,6 +190,9 @@ func (self *AppBuild) CollectDitryNodes(node *Node) bool {
 		}
 	}
 
+	// initial OutPutReady true
+	node.InEdge.OutPutReady = true
+
 	// if any input is dirty, current node is dirty
 	var most_recent_input *Node = nil
 	var dirty bool = false
@@ -224,8 +229,12 @@ func (self *AppBuild) CollectDitryNodes(node *Node) bool {
 	for _, o := range node.InEdge.Outs {
 		o.SetDirty(dirty)
 		if dirty {
-			fmt.Printf("dirty(%v) %s\n", dirty, node.Path)
+			fmt.Printf("dirty(%v) %s, edge.OutPutReady: %v\n", dirty, node.Path, node.InEdge.OutPutReady)
 		}
+	}
+
+	if dirty && !(node.InEdge.IsPhony() && len(node.InEdge.Ins) == 0) {
+		node.InEdge.OutPutReady = false
 	}
 
 	return true
@@ -240,6 +249,7 @@ func (self *AppBuild) _RunBuild() error {
 	var allDitryNodes []*Node
 	for _, t := range targets {
 		self.CollectDitryNodes(t)
+		self.Runner.AddTarget(t, nil)
 	}
 
 	for _, node := range allDitryNodes {
