@@ -100,9 +100,12 @@ func (self *Node) Stat() bool {
 			self.Status.Exist = ExistenceStatusExist
 		} else if os.IsNotExist(err) {
 			self.Status.Exist = ExistenceStatusMissing
+		} else {
+			fmt.Printf("%s: %v", self.Path, err)
+			return false
 		}
 		// else unknown
-		return false
+		return true
 	}
 
 	self.Status.MTime = finfo.ModTime()

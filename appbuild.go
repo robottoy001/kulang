@@ -166,7 +166,6 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 func (self *AppBuild) CollectDitryNodes(node *Node) bool {
 	// leaf node
 	if node.InEdge == nil {
-		fmt.Printf("node.InEdge == nil, node: %s\n", node.Path)
 		if node.StatusKnow() {
 			return true
 		}
