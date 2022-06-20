@@ -229,11 +229,13 @@ func (self *AppBuild) CollectDitryNodes(node *Node) bool {
 	for _, o := range node.InEdge.Outs {
 		o.SetDirty(dirty)
 		if dirty {
-			fmt.Printf("dirty(%v) %s, edge.OutPutReady: %v\n", dirty, node.Path, node.InEdge.OutPutReady)
+			fmt.Printf("set dirty %v: %s\n", o.Status.Dirty, o.Path)
+			fmt.Printf("dirty(%v) cur node: %s\n", dirty, node.Path)
 		}
 	}
 
 	if dirty && !(node.InEdge.IsPhony() && len(node.InEdge.Ins) == 0) {
+		fmt.Printf("Node %s inEdge's output is false\n", node.Path)
 		node.InEdge.OutPutReady = false
 	}
 
@@ -246,18 +248,18 @@ func (self *AppBuild) _RunBuild() error {
 	// 2. from default rule
 	// 3. root node which don't have out edge
 	targets := self.getTargets()
-	var allDitryNodes []*Node
 	for _, t := range targets {
 		self.CollectDitryNodes(t)
-		self.Runner.AddTarget(t, nil)
+		if t.InEdge != nil && !t.InEdge.OutPutReady {
+			self.Runner.AddTarget(t, nil)
+		}
+		fmt.Printf("--------------------------------------\n")
 	}
 
-	for _, node := range allDitryNodes {
-		if node.Stat() {
-			fmt.Printf("exist: %v ", node.Status.MTime)
-		}
-		fmt.Printf("%d - %s\n", node.Status.Exist, node.Path)
-	}
+	//for k, v := range self.Runner.Status {
+	//	fmt.Printf("%s - %d\n", k.Outs[0].Path, v)
+	//}
+	self.Runner.Start()
 
 	return nil
 }

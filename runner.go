@@ -1,10 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+)
 
 type Runner struct {
-	Run    chan *Edge
-	Status map[*Edge]uint8
+	Run      chan *Edge
+	Status   map[*Edge]uint8
+	RunQueue []*Edge
 }
 
 const (
@@ -15,21 +21,59 @@ const (
 
 func NewRunner() *Runner {
 	return &Runner{
-		Run:    make(chan *Edge),
-		Status: map[*Edge]uint8{},
+		Run:      make(chan *Edge),
+		Status:   map[*Edge]uint8{},
+		RunQueue: []*Edge{},
 	}
 }
 
-func (self *Runner) AddTarget(node *Node, dep *Node) error {
+func (self *Runner) execCommand(command string) {
+	cmd := exec.Command('sh', '-c', command)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
 
-	go func() {
-		for {
-			select {
-			case edge := <-self.Run:
-				fmt.Printf("RUN: %s <-- %s -- %s", edge.Outs[0].Path, edge.Rule.Name, edge.Ins[0].Path)
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (self *Runner) Start() {
+	for len(self.RunQueue) > 0 {
+		edge := self.RunQueue[0]
+		self.RunQueue = self.RunQueue[1:]
+		// run dege.command
+		fmt.Printf("%s\n", edge.EvalCommand())
+
+		self.execCommand(edge.EvalCommand())
+
+		// after finished
+		edge.OutPutReady = true
+		// delete in status map
+		delete(self.Status, edge)
+
+		// find next
+		for _, outNode := range edge.Outs {
+			for _, outEdge := range outNode.OutEdges {
+				if _, ok := self.Status[outEdge]; !ok {
+					continue
+				}
+				if outEdge.AllInputReady() {
+					self.scheduleEdge(outEdge)
+				}
 			}
 		}
-	}()
+	}
+}
+
+func (self *Runner) scheduleEdge(edge *Edge) {
+	fmt.Printf("scheduleEdge: %v\n", edge.Outs[0].Path)
+	self.RunQueue = append(self.RunQueue, edge)
+}
+
+func (self *Runner) AddTarget(node *Node, dep *Node) error {
+	//fmt.Printf("Addtarget, %s,output: %v\n", node.Path, node.InEdge.OutPutReady)
 
 	if node.InEdge == nil {
 		var err error
@@ -40,35 +84,41 @@ func (self *Runner) AddTarget(node *Node, dep *Node) error {
 			}
 			err = fmt.Errorf("%s%s missing", node.Path, depstr)
 		}
+		fmt.Printf("AddTarget, inEdge is nil: %v\n", err)
 		return err
 	}
 
 	if node.InEdge.OutPutReady {
-		return fmt.Errorf("all outputs are ready")
+		return nil
 	}
+
 	status, ok := self.Status[node.InEdge]
 	// not exists
 	if !ok {
 		self.Status[node.InEdge] = READY_TO_RUN
 		status = READY_TO_RUN
+		fmt.Printf("AddTarget, %s,output: %v\n", node.Path, node.InEdge.OutPutReady)
 	}
 
 	if node.Status.Dirty && status == READY_TO_RUN {
 		self.Status[node.InEdge] = RUNNING
+		//fmt.Printf("AddTarget, check if we can schedule: %s\n", node.Path)
 		if node.InEdge.AllInputReady() {
-			self.Run <- node.InEdge
 			fmt.Printf("Node Input ready: %s\n", node.Path)
+			self.scheduleEdge(node.InEdge)
 		}
 	}
 
 	// already exists && proceeded
 	if ok {
+		fmt.Printf("AddTarget, already proceeded %s\n", node.Path)
 		return nil
 	}
 
 	for _, in := range node.InEdge.Ins {
 		err := self.AddTarget(in, node)
 		if err != nil {
+			fmt.Printf("AddTarget, err: input are: %v\n", in)
 			return err
 		}
 	}

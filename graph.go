@@ -102,7 +102,6 @@ func (self *Edge) EvalCommand() string {
 	command := self.Rule.QueryVar("command")
 	self.EvalInOut()
 	v := command.Eval(self.Scope)
-	fmt.Printf("%s\n", v)
 	return v
 }
 
