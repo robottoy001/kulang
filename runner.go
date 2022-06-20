@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 )
 
 type Runner struct {
@@ -28,7 +29,7 @@ func NewRunner() *Runner {
 }
 
 func (self *Runner) execCommand(command string) {
-	cmd := exec.Command('sh', '-c', command)
+	cmd := exec.Command("sh", "-c", command)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -45,6 +46,11 @@ func (self *Runner) Start() {
 		self.RunQueue = self.RunQueue[1:]
 		// run dege.command
 		fmt.Printf("%s\n", edge.EvalCommand())
+
+		for _, o := range edge.Outs {
+			os.MkdirAll(path.Dir(o.Path), os.ModePerm)
+			fmt.Printf("%s -> %s\n", o.Path, path.Dir(o.Path))
+		}
 
 		self.execCommand(edge.EvalCommand())
 
