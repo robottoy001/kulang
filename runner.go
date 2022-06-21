@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"runtime"
 )
 
 type Runner struct {
@@ -40,41 +41,72 @@ func (self *Runner) execCommand(command string) {
 	}
 }
 
-func (self *Runner) Start() {
-	for len(self.RunQueue) > 0 {
-		edge := self.RunQueue[0]
-		self.RunQueue = self.RunQueue[1:]
-		// run dege.command
-		fmt.Printf("%s\n", edge.EvalCommand())
+func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 
-		for _, o := range edge.Outs {
-			os.MkdirAll(path.Dir(o.Path), os.ModePerm)
-			fmt.Printf("%s -> %s\n", o.Path, path.Dir(o.Path))
-		}
+	for _, o := range edge.Outs {
+		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
+	}
 
-		self.execCommand(edge.EvalCommand())
+	self.execCommand(edge.EvalCommand())
+	fmt.Printf("%s\n", edge.EvalCommand())
 
-		// after finished
-		edge.OutPutReady = true
-		// delete in status map
-		delete(self.Status, edge)
+	done <- edge
+}
 
-		// find next
-		for _, outNode := range edge.Outs {
-			for _, outEdge := range outNode.OutEdges {
-				if _, ok := self.Status[outEdge]; !ok {
-					continue
-				}
-				if outEdge.AllInputReady() {
-					self.scheduleEdge(outEdge)
-				}
+func (self *Runner) finished(edge *Edge) {
+	edge.OutPutReady = true
+	// delete in status map
+	delete(self.Status, edge)
+
+	// find next
+	for _, outNode := range edge.Outs {
+		for _, outEdge := range outNode.OutEdges {
+			if _, ok := self.Status[outEdge]; !ok {
+				continue
+			}
+			if outEdge.AllInputReady() {
+				self.scheduleEdge(outEdge)
 			}
 		}
 	}
+
+}
+
+func (self *Runner) Start() {
+	done := make(chan *Edge)
+
+	parallel := runtime.NumCPU()
+	running := 0
+Loop:
+	for {
+		if len(self.RunQueue) > 0 {
+			running += 1
+			edge := self.RunQueue[0]
+			self.RunQueue = self.RunQueue[1:]
+
+			go self.workProcess(edge, done)
+		}
+
+		if running < parallel && len(self.RunQueue) > 0 {
+			continue
+		}
+
+		select {
+		case e := <-done:
+			running -= 1
+			self.finished(e)
+			if running == 0 && len(self.RunQueue) <= 0 {
+				fmt.Printf("no edge should runing\n")
+				break Loop
+			}
+		}
+	}
+
+	fmt.Printf("DONE : %d\n", running)
 }
 
 func (self *Runner) scheduleEdge(edge *Edge) {
-	fmt.Printf("scheduleEdge: %v\n", edge.Outs[0].Path)
+	//fmt.Printf("scheduleEdge: %v\n", edge.Outs[0].Path)
 	self.RunQueue = append(self.RunQueue, edge)
 }
 
