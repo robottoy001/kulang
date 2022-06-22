@@ -66,3 +66,23 @@ func cmdVersion(flags Flags) (int, error) {
 	fmt.Printf("kulang %s\n", version)
 	return KULANG_SUCCESS, nil
 }
+
+func cmdTargets(flags Flags) (int, error) {
+	dir := flags.FlagSet.Lookup("D").Value.String()
+	configFile := flags.FlagSet.Lookup("config").Value.String()
+
+	option := &BuildOption{
+		BuildDir:   dir,
+		ConfigFile: configFile,
+		Targets:    flags.Args(),
+	}
+
+	App := NewAppBuild(option)
+	App.Initialize()
+	err := App.Targets()
+	if err != nil {
+		return KULANG_ERROR, err
+	}
+	return KULANG_SUCCESS, nil
+
+}

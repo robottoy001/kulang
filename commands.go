@@ -62,6 +62,21 @@ func init() {
 			return fs
 		}(),
 	})
+
+	RegisterCmd(Command{
+		Name:  "targets",
+		Func:  cmdTargets,
+		Usage: "[-D <DIR>] [--config=<ninja file>] [switch...]",
+		Short: "Build targets which specified",
+		Flags: func() *flag.FlagSet {
+			fs := flag.NewFlagSet("build", flag.ExitOnError)
+			fs.String("D", ".", "directory which include .ninja file")
+			fs.String("config", "build.ninja", "specified .ninja file")
+			fs.Bool("rule", false, "print all rules")
+			return fs
+		}(),
+	})
+
 	RegisterCmd(Command{
 		Name:  "version",
 		Func:  cmdVersion,

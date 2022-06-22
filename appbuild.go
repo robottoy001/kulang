@@ -67,10 +67,27 @@ func (self *AppBuild) RunBuild() error {
 	}
 
 	fmt.Println("start building...")
-	err = self._RunBuild()
+	//err = self._RunBuild()
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (self *AppBuild) Targets() error {
+	p := NewParser(self)
+	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err = p.Parse()
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
 	return nil
 }
 

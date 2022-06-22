@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 )
 
@@ -328,10 +329,11 @@ Loop:
 func (self *NinjaScanner) ScanVarValue(path bool) (VarString, error) {
 	self.skipWhiteSpace()
 	var value VarString
-	var tmpStr string
+	var tmpStr bytes.Buffer
 	var strtype StrType = ORGINAL
 	var err error = nil
 
+	tmpStr.Grow(1024)
 	self.tokenStart()
 Loop:
 	for {
@@ -342,7 +344,7 @@ Loop:
 			next := self.peek()
 			// escape
 			if next == ':' || next == '$' || next == ' ' {
-				tmpStr += string(next)
+				tmpStr.WriteByte(next)
 				self.advance()
 				break
 			}
@@ -368,13 +370,13 @@ Loop:
 			// variable name
 			if next == '{' {
 				// save normal string if have
-				if tmpStr != "" {
-					value.Append(tmpStr, strtype)
+				if tmpStr.Len() != 0 {
+					value.Append(tmpStr.String(), strtype)
 				}
 
 				self.advance()
 
-				tmpStr = ""
+				tmpStr.Truncate(0)
 				// scan ${varname}
 				strtype = VARIABLE
 				err := self.scanIdentifier()
@@ -385,11 +387,11 @@ Loop:
 			}
 
 			if self.isSimpleIdentifier(next) {
-				if tmpStr != "" {
-					value.Append(tmpStr, strtype)
+				if tmpStr.Len() != 0 {
+					value.Append(tmpStr.String(), strtype)
 				}
 
-				tmpStr = ""
+				tmpStr.Truncate(0)
 				// scan ${varname}
 				strtype = VARIABLE
 				err := self.scanSimpleIdentifier()
@@ -417,15 +419,15 @@ Loop:
 				self.backward()
 				break Loop
 			}
-			tmpStr += string(ch)
+			tmpStr.WriteByte(ch)
 		case ch == INVALID_CHAR:
 			break Loop
 		default:
-			tmpStr += string(ch)
+			tmpStr.WriteByte(ch)
 		}
 	}
-	if tmpStr != "" {
-		value.Append(tmpStr, strtype)
+	if tmpStr.Len() != 0 {
+		value.Append(tmpStr.String(), strtype)
 	}
 
 	self.tokenEnd()

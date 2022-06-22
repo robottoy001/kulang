@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 type StrType uint8
 
@@ -23,16 +26,16 @@ func (self *VarString) Append(s string, st StrType) {
 }
 
 func (self *VarString) Eval(scope *Scope) string {
-	var Value string
+	var Value bytes.Buffer
 
 	for _, v := range self.Str {
 		if v.Type == ORGINAL {
-			Value += v.Str
+			Value.WriteString(v.Str)
 		} else if v.Type == VARIABLE {
-			Value += scope.QueryVar(v.Str)
+			Value.WriteString(scope.QueryVar(v.Str))
 		}
 	}
-	return Value
+	return Value.String()
 }
 
 func (self *VarString) String() string {
