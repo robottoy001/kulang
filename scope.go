@@ -2,19 +2,19 @@ package main
 
 type Scope struct {
 	Rules  map[string]*Rule
-	Vars   map[string]string
+	Vars   map[string]*VarString
 	Parent *Scope
 }
 
 func NewScope(parent *Scope) *Scope {
 	return &Scope{
 		Rules:  make(map[string]*Rule),
-		Vars:   make(map[string]string),
+		Vars:   make(map[string]*VarString),
 		Parent: parent,
 	}
 }
 
-func (self *Scope) QueryVar(k string) string {
+func (self *Scope) QueryVar(k string) *VarString {
 	if v, ok := self.Vars[k]; ok {
 		return v
 	}
@@ -22,10 +22,10 @@ func (self *Scope) QueryVar(k string) string {
 	if self.Parent != nil {
 		return self.Parent.QueryVar(k)
 	}
-	return ""
+	return nil
 }
 
-func (self *Scope) AppendVar(k string, v string) {
+func (self *Scope) AppendVar(k string, v *VarString) {
 	self.Vars[k] = v
 }
 

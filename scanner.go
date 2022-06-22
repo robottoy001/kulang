@@ -27,7 +27,6 @@ type Position struct {
 	LineStart uint32
 }
 
-
 type Scanner struct {
 	Content   []uint8
 	Token     Token
@@ -41,7 +40,7 @@ type ScannerI interface {
 	BackwardToken()
 	GetToken() Token
 	Reset([]byte)
-	ScanVarValue(bool) (VarString, error)
+	ScanVarValue(bool) (*VarString, error)
 	ScanIdent() Token
 }
 

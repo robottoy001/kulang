@@ -41,7 +41,7 @@ Loop:
 			self.Scanner.BackwardToken()
 			//fmt.Printf("INDENT, start\n")
 			varName, varValue := self.parseVariable()
-			self.Scope.AppendVar(varName, varValue.Eval(self.Scope))
+			self.Scope.AppendVar(varName, varValue)
 			//fmt.Printf("INDENT END %s = %s\n", varName, varValue.Eval(self.Scope))
 			break
 		case tok.Type == TOKEN_NEWLINE:
@@ -74,9 +74,9 @@ func (self *NinjaParser) parseInclude(new_scope bool) {
 
 	// new parser with new scope
 	app := self.App
-	if new_scope {
-		app.Scope = NewScope(self.App.Scope)
-	}
+	//if new_scope {
+	//	app.Scope = NewScope(self.App.Scope)
+	//}
 	subParser := NewParser(app)
 
 	// load & parse
@@ -109,7 +109,7 @@ func (self *NinjaParser) parseDefault() {
 func (self *NinjaParser) parseBuild() {
 	//fmt.Printf("ParseBuild-----------begin--\n")
 	// out
-	var outs []VarString
+	var outs []*VarString
 	for {
 		out, _ := self.parsePath()
 		if out.Empty() {
@@ -121,7 +121,7 @@ func (self *NinjaParser) parseBuild() {
 
 	// |
 	// implict out
-	var imOuts []VarString
+	var imOuts []*VarString
 	if self.Scanner.PeekToken(TOKEN_PIPE) {
 		for {
 			out, _ := self.parsePath()
@@ -148,7 +148,7 @@ func (self *NinjaParser) parseBuild() {
 	//fmt.Printf("ruleName %s\n", ruleName)
 
 	// input list
-	var ins []VarString
+	var ins []*VarString
 	for {
 		in, _ := self.parsePath()
 		if in.Empty() {
@@ -159,7 +159,7 @@ func (self *NinjaParser) parseBuild() {
 	//fmt.Println("ins: ", imOuts)
 	// |
 	// implicit dependence
-	var imIns []VarString
+	var imIns []*VarString
 	if self.Scanner.PeekToken(TOKEN_PIPE) {
 		for {
 			in, _ := self.parsePath()
@@ -173,7 +173,7 @@ func (self *NinjaParser) parseBuild() {
 
 	// ||
 	// order dependence
-	var orIns []VarString
+	var orIns []*VarString
 	if self.Scanner.PeekToken(TOKEN_PIPE2) {
 		for {
 			in, _ := self.parsePath()
@@ -187,7 +187,7 @@ func (self *NinjaParser) parseBuild() {
 
 	// |@
 	// validation
-	var valids []VarString
+	var valids []*VarString
 	if self.Scanner.PeekToken(TOKEN_PIPEAT) {
 		for {
 			in, _ := self.parsePath()
@@ -222,18 +222,18 @@ func (self *NinjaParser) parseBuild() {
 	self.App.AddBuild(edge)
 	// variable
 	// add variable to edge
-	scope := NewScope(self.Scope)
+	scope := NewScope(nil)
+
 	for self.Scanner.PeekToken(TOKEN_INDENT) {
 		varName, varValue := self.parseVariable()
-		scope.AppendVar(varName, varValue.Eval(scope))
-		//fmt.Printf("BUILD VAR: %s = %s\n", varName, varValue.Eval(scope))
+		scope.AppendVar(varName, varValue)
 	}
 	edge.Scope = scope
 
 	// check pool if exist
-	poolName := self.Scope.QueryVar("pool")
-	if poolName != "" {
-		pool := self.App.FindPool(poolName)
+	poolName := edge.Scope.QueryVar("pool")
+	if poolName != nil {
+		pool := self.App.FindPool(poolName.Eval(scope))
 		edge.Pool = pool
 	}
 
@@ -284,7 +284,7 @@ func (self *NinjaParser) parseRule() {
 	//fmt.Printf("%v\n", self.Scope.Rules)
 }
 
-func (self *NinjaParser) parseVariable() (string, VarString) {
+func (self *NinjaParser) parseVariable() (string, *VarString) {
 	//fmt.Printf("--------Begin parse Variable--------------\n")
 	tok := self.Scanner.ScanIdent()
 	varName := tok.Literal
@@ -292,20 +292,20 @@ func (self *NinjaParser) parseVariable() (string, VarString) {
 	// expectd '='
 	if !self.Scanner.PeekToken(TOKEN_EQUALS) {
 		log.Fatal("Expected =, Got", tok.Literal)
-		return "", VarString{}
+		return "", &VarString{}
 	}
 
 	varValue, err := self.Scanner.ScanVarValue(false)
 	if err != nil {
 		log.Fatal("Parse Value fail")
-		return varName, VarString{}
+		return varName, &VarString{}
 	}
 	//fmt.Printf("--------End parse Variable--------------\n")
 
 	return varName, varValue
 }
 
-func (self *NinjaParser) parsePath() (VarString, error) {
+func (self *NinjaParser) parsePath() (*VarString, error) {
 	valString, err := self.Scanner.ScanVarValue(true)
 	if err != nil {
 		log.Fatal(err)
@@ -314,7 +314,7 @@ func (self *NinjaParser) parsePath() (VarString, error) {
 	return valString, err
 }
 
-func (self *NinjaParser) parseVarValue() (VarString, error) {
+func (self *NinjaParser) parseVarValue() (*VarString, error) {
 	valString, err := self.Scanner.ScanVarValue(false)
 	if err != nil {
 		log.Fatal(err)

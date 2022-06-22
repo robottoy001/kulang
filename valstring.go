@@ -32,7 +32,7 @@ func (self *VarString) Eval(scope *Scope) string {
 		if v.Type == ORGINAL {
 			Value.WriteString(v.Str)
 		} else if v.Type == VARIABLE {
-			Value.WriteString(scope.QueryVar(v.Str))
+			Value.WriteString(scope.QueryVar(v.Str).Eval(scope))
 		}
 	}
 	return Value.String()

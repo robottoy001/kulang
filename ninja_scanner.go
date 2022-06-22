@@ -300,9 +300,11 @@ Loop:
 		}
 	}
 
-	literal := self.Content[start:self.Pos.Offset]
-	self.Token.Type = self.getIdentifierType(string(literal))
-	self.Token.Literal = string(literal)
+	//literal := self.Content[start:self.Pos.Offset]
+	self.Token.Type = self.getIdentifierType(string(self.Content[start:self.Pos.Offset]))
+	//self.Token.Literal = string(literal)
+	self.Token.Loc.Start = start
+	self.Token.Loc.End = self.Pos.Offset
 	return nil
 }
 
@@ -320,13 +322,15 @@ Loop:
 		}
 	}
 
-	literal := self.Content[start:self.Pos.Offset]
-	self.Token.Type = self.getIdentifierType(string(literal))
-	self.Token.Literal = string(literal)
+	//literal := self.Content[start:self.Pos.Offset]
+	self.Token.Type = self.getIdentifierType(string(self.Content[start:self.Pos.Offset]))
+	//self.Token.Literal = string(literal)
+	self.Token.Loc.Start = start
+	self.Token.Loc.End = self.Pos.Offset
 	return nil
 }
 
-func (self *NinjaScanner) ScanVarValue(path bool) (VarString, error) {
+func (self *NinjaScanner) ScanVarValue(path bool) (*VarString, error) {
 	self.skipWhiteSpace()
 	var value VarString
 	var tmpStr bytes.Buffer
@@ -383,7 +387,8 @@ Loop:
 				if err != nil {
 					panic(err)
 				}
-				value.Append(self.Token.Literal, strtype)
+				//value.Append(self.Token.Literal, strtype)
+				value.Append(string(self.Content[self.Token.Loc.Start:self.Token.Loc.End]), strtype)
 			}
 
 			if self.isSimpleIdentifier(next) {
@@ -398,7 +403,7 @@ Loop:
 				if err != nil {
 					panic(err)
 				}
-				value.Append(self.Token.Literal, strtype)
+				value.Append(string(self.Content[self.Token.Loc.Start:self.Token.Loc.End]), strtype)
 				strtype = ORGINAL
 			}
 			break
@@ -432,7 +437,7 @@ Loop:
 
 	self.tokenEnd()
 
-	return value, err
+	return &value, err
 }
 
 func (self *NinjaScanner) ScanIdent() Token {

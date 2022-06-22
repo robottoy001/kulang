@@ -86,14 +86,33 @@ func (self *Edge) EvalInOut() {
 		buffer.WriteString(" ")
 	}
 
-	self.Scope.AppendVar("in", strings.TrimRight(buffer.String(), " "))
+	inStr := &VarString{
+		Str: []_VarString{
+			_VarString{
+				Str:  strings.TrimRight(buffer.String(), " "),
+				Type: ORGINAL,
+			},
+		},
+	}
+
+	self.Scope.AppendVar("in", inStr)
 	buffer.Reset()
 
 	for _, out := range self.Outs {
 		buffer.WriteString(out.Path)
 		buffer.WriteString(" ")
 	}
-	self.Scope.AppendVar("out", strings.TrimRight(buffer.String(), " "))
+
+	outStr := &VarString{
+		Str: []_VarString{
+			_VarString{
+				Str:  strings.TrimRight(buffer.String(), " "),
+				Type: ORGINAL,
+			},
+		},
+	}
+
+	self.Scope.AppendVar("out", outStr)
 
 	//fmt.Printf("out: %s\n", buffer.String())
 }
