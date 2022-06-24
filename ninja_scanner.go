@@ -90,6 +90,7 @@ func (self *NinjaScanner) newLine() {
 }
 
 func (self *NinjaScanner) GetToken() Token {
+	self.Token.Literal = string(self.Content[self.Token.Loc.Start:self.Token.Loc.End])
 	return self.Token
 }
 

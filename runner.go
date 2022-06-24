@@ -47,8 +47,8 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
 	}
 
-	self.execCommand(edge.EvalCommand())
 	fmt.Printf("%s\n", edge.EvalCommand())
+	self.execCommand(edge.EvalCommand())
 
 	done <- edge
 }
@@ -83,6 +83,9 @@ Loop:
 			running += 1
 			edge := self.RunQueue[0]
 			self.RunQueue = self.RunQueue[1:]
+			if edge.IsPhony() {
+				continue
+			}
 
 			go self.workProcess(edge, done)
 		}

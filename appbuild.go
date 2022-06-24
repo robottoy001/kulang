@@ -53,7 +53,7 @@ func (self *AppBuild) RunBuild() error {
 
 	// parser load .ninja file
 	// default, Ninja parser & scanner
-	p := NewParser(self)
+	p := NewParser(self, self.Scope)
 	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
@@ -67,7 +67,7 @@ func (self *AppBuild) RunBuild() error {
 	}
 
 	fmt.Println("start building...")
-	//err = self._RunBuild()
+	err = self._RunBuild()
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (self *AppBuild) RunBuild() error {
 }
 
 func (self *AppBuild) Targets() error {
-	p := NewParser(self)
+	p := NewParser(self, self.Scope)
 	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
@@ -86,6 +86,14 @@ func (self *AppBuild) Targets() error {
 	if err != nil {
 		log.Fatal(err)
 		return err
+	}
+
+	for _, e := range self.Edges {
+		for _, o := range e.Outs {
+			if len(o.OutEdges) == 0 && o.InEdge != nil {
+				fmt.Printf("%s: %s\n", o.Path, o.InEdge.Rule.Name)
+			}
+		}
 	}
 
 	return nil

@@ -23,12 +23,12 @@ type ParserI interface {
 }
 
 // default: Ninja parser
-func NewParser(app *AppBuild) ParserI {
+func NewParser(app *AppBuild, scope *Scope) ParserI {
 	return &NinjaParser{
 		&Parser{
 			Scanner: NewScanner(SCANNER_NINJA, []byte{}),
 			App:     app,
-			Scope:   app.Scope,
+			Scope:   scope,
 		},
 	}
 }

@@ -12,12 +12,10 @@ type NinjaParser struct {
 }
 
 func (self *NinjaParser) Parse() error {
-	//fmt.Println("parsing")
-
+	//start := time.Now()
 Loop:
 	for {
 		tok := self.Scanner.NextToken()
-		//fmt.Printf("---parse %d  %s\n", tok.Type, tok.Literal)
 
 		switch {
 		case tok.Type == TOKEN_SUBNINJA:
@@ -58,11 +56,9 @@ Loop:
 		}
 	}
 
-	//fmt.Println("parser, finished")
+	//fmt.Printf(": time elapse %d ms\n", time.Since(start).Milliseconds())
 	return nil
 }
-
-var indent int = 0
 
 func (self *NinjaParser) parseInclude(new_scope bool) {
 	varString, err := self.parseVarValue()
@@ -73,11 +69,11 @@ func (self *NinjaParser) parseInclude(new_scope bool) {
 	relative_path := varString.Eval(self.Scope)
 
 	// new parser with new scope
-	app := self.App
-	//if new_scope {
-	//	app.Scope = NewScope(self.App.Scope)
-	//}
-	subParser := NewParser(app)
+	scope := self.Scope
+	if new_scope {
+		scope = NewScope(self.Scope)
+	}
+	subParser := NewParser(self.App, scope)
 
 	// load & parse
 	real_path := path.Join(self.App.Option.BuildDir, relative_path)
@@ -145,7 +141,7 @@ func (self *NinjaParser) parseBuild() {
 		return
 	}
 	ruleName := self.Scanner.GetToken().Literal
-	//fmt.Printf("ruleName %s\n", ruleName)
+	//fmt.Printf("edge - ruleName %s\n", ruleName)
 
 	// input list
 	var ins []*VarString
@@ -222,7 +218,7 @@ func (self *NinjaParser) parseBuild() {
 	self.App.AddBuild(edge)
 	// variable
 	// add variable to edge
-	scope := NewScope(nil)
+	scope := NewScope(self.Scope)
 
 	for self.Scanner.PeekToken(TOKEN_INDENT) {
 		varName, varValue := self.parseVariable()
@@ -249,14 +245,15 @@ func (self *NinjaParser) parseBuild() {
 		self.App.AddIn(edge, i.Eval(scope))
 	}
 
-	//edge.EvalCommand()
+	//if !edge.IsPhony() {
+	//	edge.EvalCommand()
+	//}
 }
 
 func (self *NinjaParser) parseRule() {
 	// rule name
 	// expected TOKEN_IDENT
 	tok := self.Scanner.ScanIdent()
-	ruleName := tok.Literal
 	//fmt.Printf("ruleName: %s\n", ruleName)
 	//log.Println("Rule, got ", self.Scanner.GetToken().Literal,
 	//	",type: ", self.Scanner.GetToken().Type,
@@ -272,7 +269,7 @@ func (self *NinjaParser) parseRule() {
 		return
 	}
 
-	rule := NewRule(ruleName)
+	rule := NewRule(tok.Literal)
 
 	// add variable in Rule
 	for self.Scanner.PeekToken(TOKEN_INDENT) {
@@ -280,7 +277,7 @@ func (self *NinjaParser) parseRule() {
 		rule.AppendVar(varName, varValue)
 	}
 
-	self.Scope.AppendRule(ruleName, rule)
+	self.Scope.AppendRule(tok.Literal, rule)
 	//fmt.Printf("%v\n", self.Scope.Rules)
 }
 
