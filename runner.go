@@ -77,6 +77,11 @@ func (self *Runner) Start() {
 
 	parallel := runtime.NumCPU()
 	running := 0
+	if len(self.RunQueue) == 0 {
+		fmt.Printf("No work to do\n")
+		return
+	}
+
 Loop:
 	for {
 		if len(self.RunQueue) > 0 {
@@ -105,7 +110,7 @@ Loop:
 		}
 	}
 
-	fmt.Printf("DONE : %d\n", running)
+	fmt.Printf("Done.\n")
 }
 
 func (self *Runner) scheduleEdge(edge *Edge) {

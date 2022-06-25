@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type Scope struct {
 	Rules  map[string]*Rule
 	Vars   map[string]*VarString
@@ -28,9 +26,6 @@ func (self *Scope) QueryVar(k string) *VarString {
 }
 
 func (self *Scope) AppendVar(k string, v *VarString) {
-	if k == "solibs" {
-		fmt.Printf("Appendd value: %v\n", v)
-	}
 	self.Vars[k] = v
 }
 

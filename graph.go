@@ -15,6 +15,12 @@ const (
 	ExistenceStatusExist
 )
 
+const (
+	VISITED_NONE uint8 = iota
+	VISITED_IN_STACK
+	VISITED_DONE
+)
+
 type NodeStatus struct {
 	Dirty bool
 	Exist ExistenceStatus
@@ -37,6 +43,11 @@ type Edge struct {
 	Ins         []*Node
 	Validations []*Node
 	OutPutReady bool
+	VisitStatus uint8
+
+	ImplicitOuts  int
+	ImplicitDeps  int
+	OrderOnlyDeps int
 }
 
 func NewNode(path string) *Node {
@@ -55,14 +66,26 @@ func NewNode(path string) *Node {
 
 func NewEdge(rule *Rule) *Edge {
 	return &Edge{
-		Rule:        rule,
-		Pool:        NewPool("default", 0),
-		Scope:       NewScope(nil),
-		Outs:        []*Node{},
-		Ins:         []*Node{},
-		Validations: []*Node{},
-		OutPutReady: false,
+		Rule:          rule,
+		Pool:          NewPool("default", 0),
+		Scope:         NewScope(nil),
+		Outs:          []*Node{},
+		Ins:           []*Node{},
+		Validations:   []*Node{},
+		OutPutReady:   false,
+		VisitStatus:   VISITED_DONE,
+		ImplicitOuts:  0,
+		ImplicitDeps:  0,
+		OrderOnlyDeps: 0,
 	}
+}
+
+func (self *Edge) IsImplicit(index int) bool {
+	return index >= (len(self.Ins)-self.ImplicitDeps-self.OrderOnlyDeps) && !self.IsOrderOnly(index)
+}
+
+func (self *Edge) IsOrderOnly(index int) bool {
+	return index >= len(self.Ins)-self.OrderOnlyDeps
 }
 
 func (self *Edge) AllInputReady() bool {
@@ -88,7 +111,7 @@ func (self *Edge) EvalInOut() {
 
 	inStr := &VarString{
 		Str: []_VarString{
-			_VarString{
+			{
 				Str:  strings.TrimRight(buffer.String(), " "),
 				Type: ORGINAL,
 			},
@@ -105,7 +128,7 @@ func (self *Edge) EvalInOut() {
 
 	outStr := &VarString{
 		Str: []_VarString{
-			_VarString{
+			{
 				Str:  strings.TrimRight(buffer.String(), " "),
 				Type: ORGINAL,
 			},
@@ -154,4 +177,8 @@ func (self *Node) Exist() bool {
 
 func (self *Node) SetDirty(dirty bool) {
 	self.Status.Dirty = dirty
+}
+
+func (self *Node) SetPhonyMtime(t time.Time) {
+	self.Status.MTime = t
 }

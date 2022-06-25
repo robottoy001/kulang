@@ -141,6 +141,13 @@ func (self AppBuild) AddIn(edge *Edge, path string) {
 	edge.Ins = append(edge.Ins, node)
 }
 
+func (self AppBuild) AddValids(edge *Edge, path string) {
+	node := self.FindNode(path)
+	node.ValidOutEdges = append(node.ValidOutEdges, edge)
+
+	edge.Validations = append(edge.Validations, node)
+}
+
 func (self *AppBuild) getTargets() []*Node {
 	var nodesToBuild []*Node
 	if len(self.Option.Targets) > 0 {
@@ -175,6 +182,9 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 				return true
 			}
 			// TODO: xx update phony mtime
+			if most_recent_input != nil {
+				o.SetPhonyMtime(most_recent_input.Status.MTime)
+			}
 			return false
 		}
 		if !o.Exist() {
@@ -183,19 +193,51 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 
 		if most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
 			// TODO: xx restart property
-			fmt.Printf("xxxxxxx - Path： %s, most recent: %v\n", o.Path, most_recent_input.Status.MTime)
+			fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
 			return true
 		}
 	}
 	return false
 }
 
-func (self *AppBuild) CollectDitryNodes(node *Node) bool {
+func (self *AppBuild) verifyDAG(node *Node, stack []*Node) bool {
+	if node.InEdge.VisitStatus != VISITED_IN_STACK {
+		return true
+	}
+
+	var foundIndex int = -1
+	for d := 0; d < len(stack); d += 1 {
+		if stack[d].InEdge == node.InEdge {
+			foundIndex = d
+			break
+		}
+	}
+
+	stack[foundIndex] = node
+
+	var err string = "Dependency cycle: "
+	for d := foundIndex; d < len(stack); d += 1 {
+		err += stack[d].Path
+		err += "->"
+	}
+	err += stack[foundIndex].Path
+
+	log.Fatal(err)
+
+	return false
+}
+
+// TODO:xxx need to visit validation nodes
+// STATUS: visit if not
+func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
+	//fmt.Printf("scan node begin: %s \n", node.Path)
 	// leaf node
 	if node.InEdge == nil {
 		if node.StatusKnow() {
 			return true
 		}
+
+		// check if leaf node exist
 		if ok := node.Stat(); !ok {
 			return false
 		}
@@ -207,34 +249,50 @@ func (self *AppBuild) CollectDitryNodes(node *Node) bool {
 		return true
 	}
 
+	if node.InEdge.VisitStatus == VISITED_NONE {
+		return true
+	}
+
+	if !self.verifyDAG(node, stack) {
+		return false
+	}
+
+	// ninja trace visiting status
+	node.InEdge.VisitStatus = VISITED_IN_STACK
+	stack = append(stack, node)
+	// initial OutPutReady true
+	node.InEdge.OutPutReady = true
+	// initial dirty flag
+	var dirty bool = false
+
 	// update output mode time & exist status
 	for _, o := range node.InEdge.Outs {
+		//fmt.Printf("    Outs: %s\n", o.Path)
 		if ok := o.Stat(); !ok {
 			fmt.Printf("out stat err(%v) %s\n", ok, o.Path)
 			return false
 		}
 	}
 
-	// initial OutPutReady true
-	node.InEdge.OutPutReady = true
-
 	// if any input is dirty, current node is dirty
 	var most_recent_input *Node = nil
-	var dirty bool = false
-	for _, i := range node.InEdge.Ins {
-		if ok := self.CollectDitryNodes(i); !ok {
+	for index, i := range node.InEdge.Ins {
+		//fmt.Printf("    ints: %s\n", i.Path)
+		if ok := self.CollectDitryNodes(i, stack); !ok {
 			return false
 		}
+
 		if i.InEdge != nil && !i.InEdge.OutPutReady {
 			node.InEdge.OutPutReady = false
 		}
 
-		// TODO:xxx consider order only
-		if i.Status.Dirty {
-			dirty = true
-		} else {
-			if most_recent_input == nil || most_recent_input.Status.MTime.After(i.Status.MTime) {
-				most_recent_input = i
+		if !node.InEdge.IsOrderOnly(index) {
+			if i.Status.Dirty {
+				dirty = true
+			} else {
+				if most_recent_input == nil || most_recent_input.Status.MTime.After(i.Status.MTime) {
+					most_recent_input = i
+				}
 			}
 		}
 	}
@@ -264,6 +322,14 @@ func (self *AppBuild) CollectDitryNodes(node *Node) bool {
 		node.InEdge.OutPutReady = false
 	}
 
+	node.InEdge.VisitStatus = VISITED_DONE
+	if stack[len(stack)-1] != node {
+		log.Fatal("stack is bad")
+	}
+	stack = stack[:len(stack)-1]
+
+	//fmt.Printf("scan node   end: %s \n", node.Path)
+
 	return true
 }
 
@@ -273,8 +339,15 @@ func (self *AppBuild) _RunBuild() error {
 	// 2. from default rule
 	// 3. root node which don't have out edge
 	targets := self.getTargets()
+	fmt.Printf("Targets: [ ")
 	for _, t := range targets {
-		self.CollectDitryNodes(t)
+		fmt.Printf("%s ", t.Path)
+	}
+	fmt.Printf("]\n")
+
+	for _, t := range targets {
+		var stack []*Node
+		self.CollectDitryNodes(t, stack)
 		if t.InEdge != nil && !t.InEdge.OutPutReady {
 			self.Runner.AddTarget(t, nil)
 		}

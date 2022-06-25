@@ -117,14 +117,15 @@ func (self *NinjaParser) parseBuild() {
 
 	// |
 	// implict out
-	var imOuts []*VarString
+	var implicit_outs int = 0
 	if self.Scanner.PeekToken(TOKEN_PIPE) {
 		for {
 			out, _ := self.parsePath()
 			if out.Empty() {
 				break
 			}
-			imOuts = append(imOuts, out)
+			outs = append(outs, out)
+			implicit_outs += 1
 		}
 	}
 	//fmt.Println("implict Out: ", imOuts)
@@ -155,28 +156,30 @@ func (self *NinjaParser) parseBuild() {
 	//fmt.Println("ins: ", imOuts)
 	// |
 	// implicit dependence
-	var imIns []*VarString
+	var implicit_deps int = 0
 	if self.Scanner.PeekToken(TOKEN_PIPE) {
 		for {
 			in, _ := self.parsePath()
 			if in.Empty() {
 				break
 			}
-			imIns = append(imIns, in)
+			ins = append(ins, in)
+			implicit_deps += 1
 		}
 	}
 	//fmt.Printf("implicit ins: %v\n", imIns)
 
 	// ||
 	// order dependence
-	var orIns []*VarString
+	var order_only_deps int = 0
 	if self.Scanner.PeekToken(TOKEN_PIPE2) {
 		for {
 			in, _ := self.parsePath()
 			if in.Empty() {
 				break
 			}
-			orIns = append(orIns, in)
+			ins = append(ins, in)
+			order_only_deps += 1
 		}
 	}
 	//fmt.Printf("implicit ins: %v\n", orIns)
@@ -215,6 +218,10 @@ func (self *NinjaParser) parseBuild() {
 
 	edge := NewEdge(rule)
 
+	edge.ImplicitOuts = implicit_outs
+	edge.ImplicitDeps = implicit_deps
+	edge.OrderOnlyDeps = order_only_deps
+
 	self.App.AddBuild(edge)
 	// variable
 	// add variable to edge
@@ -238,10 +245,6 @@ func (self *NinjaParser) parseBuild() {
 	}
 
 	for _, i := range ins {
-		self.App.AddIn(edge, i.Eval(scope))
-	}
-
-	for _, i := range imIns {
 		self.App.AddIn(edge, i.Eval(scope))
 	}
 
