@@ -48,7 +48,7 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 	}
 
 	fmt.Printf("%s\n", edge.EvalCommand())
-	self.execCommand(edge.EvalCommand())
+	//self.execCommand(edge.EvalCommand())
 
 	done <- edge
 }

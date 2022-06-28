@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"strings"
 	"time"
 )
@@ -73,7 +71,7 @@ func NewEdge(rule *Rule) *Edge {
 		Ins:           []*Node{},
 		Validations:   []*Node{},
 		OutPutReady:   false,
-		VisitStatus:   VISITED_DONE,
+		VisitStatus:   VISITED_NONE,
 		ImplicitOuts:  0,
 		ImplicitDeps:  0,
 		OrderOnlyDeps: 0,
@@ -104,8 +102,9 @@ func (self *Edge) IsPhony() bool {
 func (self *Edge) EvalInOut() {
 	buffer := new(strings.Builder)
 
-	for _, in := range self.Ins {
-		buffer.WriteString(in.Path)
+	explicit_in_deps := len(self.Ins) - self.ImplicitDeps - self.OrderOnlyDeps
+	for i := 0; i < explicit_in_deps; i += 1 {
+		buffer.WriteString(self.Ins[i].Path)
 		buffer.WriteString(" ")
 	}
 
@@ -121,8 +120,9 @@ func (self *Edge) EvalInOut() {
 	self.Scope.AppendVar("in", inStr)
 	buffer.Reset()
 
-	for _, out := range self.Outs {
-		buffer.WriteString(out.Path)
+	explicit_out_deps := len(self.Outs) - self.ImplicitOuts
+	for i := 0; i < explicit_out_deps; i += 1 {
+		buffer.WriteString(self.Outs[i].Path)
 		buffer.WriteString(" ")
 	}
 
@@ -147,23 +147,15 @@ func (self *Edge) EvalCommand() string {
 	return v
 }
 
-func (self *Node) Stat() bool {
-	finfo, err := os.Stat(self.Path)
+func (self *Node) Stat(fs FileSystem) bool {
+	finfo, err := fs.Stat(self.Path)
 	if err != nil {
-		if os.IsExist(err) {
-			self.Status.Exist = ExistenceStatusExist
-		} else if os.IsNotExist(err) {
-			self.Status.Exist = ExistenceStatusMissing
-		} else {
-			fmt.Printf("%s: %v", self.Path, err)
-			return false
-		}
-		// else unknown
-		return true
+		self.Status.Exist = finfo.Exist
+		return false
 	}
 
-	self.Status.MTime = finfo.ModTime()
-	self.Status.Exist = ExistenceStatusExist
+	self.Status.MTime = finfo.MTime
+	self.Status.Exist = finfo.Exist
 	return true
 }
 

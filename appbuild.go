@@ -23,6 +23,7 @@ type AppBuild struct {
 	Pools    map[string]*Pool
 	Edges    []*Edge
 	Runner   *Runner
+	Fs       FileSystem
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
@@ -34,6 +35,7 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 		Pools:    make(map[string]*Pool),
 		Edges:    []*Edge{},
 		Runner:   NewRunner(),
+		Fs:       RealFileSystem{},
 	}
 }
 
@@ -227,10 +229,17 @@ func (self *AppBuild) verifyDAG(node *Node, stack []*Node) bool {
 	return false
 }
 
+func identPrint(node *Node, depth int, format string, a ...interface{}) {
+	for i := 0; i < depth; i += 1 {
+		fmt.Printf(" ")
+	}
+	fmt.Printf(format, a...)
+}
+
 // TODO:xxx need to visit validation nodes
 // STATUS: visit if not
 func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
-	//fmt.Printf("scan node begin: %s \n", node.Path)
+	identPrint(node, len(stack), "Begin: %s\n", node.Path)
 	// leaf node
 	if node.InEdge == nil {
 		if node.StatusKnow() {
@@ -238,7 +247,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		}
 
 		// check if leaf node exist
-		if ok := node.Stat(); !ok {
+		if ok := node.Stat(self.Fs); !ok {
 			return false
 		}
 		if exist := node.Exist(); !exist {
@@ -249,7 +258,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		return true
 	}
 
-	if node.InEdge.VisitStatus == VISITED_NONE {
+	if node.InEdge.VisitStatus == VISITED_DONE {
 		return true
 	}
 
@@ -268,7 +277,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	// update output mode time & exist status
 	for _, o := range node.InEdge.Outs {
 		//fmt.Printf("    Outs: %s\n", o.Path)
-		if ok := o.Stat(); !ok {
+		if ok := o.Stat(self.Fs); !ok {
 			fmt.Printf("out stat err(%v) %s\n", ok, o.Path)
 			return false
 		}
@@ -328,7 +337,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	}
 	stack = stack[:len(stack)-1]
 
-	//fmt.Printf("scan node   end: %s \n", node.Path)
+	identPrint(node, len(stack), "  end: %s\n", node.Path)
 
 	return true
 }

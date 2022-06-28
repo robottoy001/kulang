@@ -9,10 +9,21 @@ import (
 func TestParseRule(t *testing.T) {
 	scope := &Scope{
 		Rules: make(map[string]*Rule),
-		Vars: map[string]string{
-			"in":  "bar.cc",
-			"out": "bar.o",
-		},
+		Vars: map[string]*VarString{
+			"in": &VarString{
+				Str: []_VarString{
+					{
+						Str:  "bar.cc",
+						Type: ORGINAL,
+					},
+				}},
+			"out": &VarString{
+				Str: []_VarString{
+					{
+						Str:  "bar,o",
+						Type: ORGINAL},
+				},
+			}},
 		Parent: nil,
 	}
 
@@ -20,7 +31,7 @@ func TestParseRule(t *testing.T) {
 	app := NewAppBuild(option)
 	app.Scope = scope
 
-	parser := NewParser(app)
+	parser := NewParser(app, scope)
 	//case1 := "rule FOO\n    command = gcc $in $out\ndescription = build by gcc"
 
 	err := parser.Load("./testdata/rule1.ninja")
@@ -41,10 +52,21 @@ func TestParseRule(t *testing.T) {
 func TestParseDefaults(t *testing.T) {
 	scope := &Scope{
 		Rules: make(map[string]*Rule),
-		Vars: map[string]string{
-			"in":  "bar.cc",
-			"out": "bar.o",
-		},
+		Vars: map[string]*VarString{
+			"in": &VarString{
+				Str: []_VarString{
+					{
+						Str:  "bar.cc",
+						Type: ORGINAL,
+					},
+				}},
+			"out": &VarString{
+				Str: []_VarString{
+					{
+						Str:  "bar,o",
+						Type: ORGINAL},
+				},
+			}},
 		Parent: nil,
 	}
 
@@ -52,7 +74,7 @@ func TestParseDefaults(t *testing.T) {
 	app := NewAppBuild(option)
 	app.Scope = scope
 
-	parser := NewParser(app)
+	parser := NewParser(app, scope)
 	//case1 := "rule FOO\n    command = gcc $in $out\ndescription = build by gcc"
 
 	err := parser.Load("./testdata/default.ninja")
@@ -77,10 +99,21 @@ func TestParseBuild(t *testing.T) {
 				Name: "cxx",
 			},
 		},
-		Vars: map[string]string{
-			"in":  "bar.cc",
-			"out": "bar.o",
-		},
+		Vars: map[string]*VarString{
+			"in": &VarString{
+				Str: []_VarString{
+					{
+						Str:  "bar.cc",
+						Type: ORGINAL,
+					},
+				}},
+			"out": &VarString{
+				Str: []_VarString{
+					{
+						Str:  "bar,o",
+						Type: ORGINAL},
+				},
+			}},
 		Parent: nil,
 	}
 
@@ -88,7 +121,7 @@ func TestParseBuild(t *testing.T) {
 	app := NewAppBuild(option)
 	app.Scope = scope
 
-	parser := NewParser(app)
+	parser := NewParser(app, scope)
 	//case1 := "rule FOO\n    command = gcc $in $out\ndescription = build by gcc"
 
 	err := parser.Load("./testdata/build.ninja")

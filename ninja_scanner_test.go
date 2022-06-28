@@ -108,8 +108,14 @@ func TestScanVariable(t *testing.T) {
 	}
 
 	scope := Scope{
-		Vars: map[string]string{
-			"foo": "bar",
+		Vars: map[string]*VarString{
+			"foo": {
+				Str: []_VarString{
+					{
+						Str:  "bar",
+						Type: ORGINAL,
+					},
+				}},
 		},
 	}
 
