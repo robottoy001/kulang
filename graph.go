@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -76,6 +77,17 @@ func NewEdge(rule *Rule) *Edge {
 		ImplicitDeps:  0,
 		OrderOnlyDeps: 0,
 	}
+}
+
+func (self *Edge) String() string {
+	s := fmt.Sprintf("\x1B[31mBUILD\x1B[0m %s: %s ", self.Outs[0].Path, self.Rule.Name)
+	var insStr string
+	//	for i := 0; i < len(self.Ins)-self.ImplicitDeps-self.OrderOnlyDeps; i += 1 {
+	//		insStr += self.Ins[i].Path
+	//		insStr += " "
+	//	}
+	s += insStr
+	return s
 }
 
 func (self *Edge) IsImplicit(index int) bool {

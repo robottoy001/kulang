@@ -357,8 +357,11 @@ func (self *AppBuild) _RunBuild() error {
 	for _, t := range targets {
 		var stack []*Node
 		self.CollectDitryNodes(t, stack)
-		if t.InEdge != nil && !t.InEdge.OutPutReady {
-			self.Runner.AddTarget(t, nil)
+		if t.InEdge != nil || !t.InEdge.OutPutReady {
+			err := self.Runner.AddTarget(t, nil)
+			if err != nil {
+				return err
+			}
 		}
 		fmt.Printf("--------------------------------------\n")
 	}

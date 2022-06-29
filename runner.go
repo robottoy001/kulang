@@ -47,8 +47,8 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
 	}
 
-	fmt.Printf("%s\n", edge.EvalCommand())
-	//self.execCommand(edge.EvalCommand())
+	fmt.Printf("%s\n", edge.String())
+	self.execCommand(edge.EvalCommand())
 
 	done <- edge
 }
@@ -81,6 +81,7 @@ func (self *Runner) Start() {
 		fmt.Printf("No work to do\n")
 		return
 	}
+	parallel = 1
 
 Loop:
 	for {
@@ -115,7 +116,9 @@ Loop:
 
 func (self *Runner) scheduleEdge(edge *Edge) {
 	//fmt.Printf("scheduleEdge: %v\n", edge.Outs[0].Path)
-	self.RunQueue = append(self.RunQueue, edge)
+	if !edge.IsPhony() {
+		self.RunQueue = append(self.RunQueue, edge)
+	}
 }
 
 func (self *Runner) AddTarget(node *Node, dep *Node) error {
@@ -139,7 +142,6 @@ func (self *Runner) AddTarget(node *Node, dep *Node) error {
 	}
 
 	status, ok := self.Status[node.InEdge]
-	// not exists
 	if !ok {
 		self.Status[node.InEdge] = READY_TO_RUN
 		status = READY_TO_RUN
