@@ -68,8 +68,6 @@ func main() {
 	// main options
 	flag.Parse()
 
-	fmt.Printf("%v\n", flag.Args())
-
 	option := &BuildOption{
 		BuildDir:   workDirectory,
 		ConfigFile: configFile,
@@ -78,6 +76,9 @@ func main() {
 
 	//subCmdName := os.Args[1]
 	args := flag.Args()
+	if len(args) == 0 {
+		args = append(args, "help")
+	}
 	subCmdName := args[0]
 	subCmd, ok := commands[subCmdName]
 	if !ok {

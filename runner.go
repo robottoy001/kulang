@@ -19,10 +19,9 @@ type Runner struct {
 }
 
 const (
-	RUNNING uint8 = iota
-	READY_TO_RUN
-	FINISHED
-	STOP
+	STATUS_INIT uint8 = iota
+	STATUS_RUNNING
+	STATUS_FINISHED
 )
 
 func NewRunner() *Runner {
@@ -52,8 +51,8 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
 	}
 
-	fmt.Printf("%s\n", edge.QueryVar("description"))
-	self.execCommand(edge.EvalCommand())
+	//fmt.Printf("%s\n", edge.QueryVar("description"))
+	//self.execCommand(edge.EvalCommand())
 
 	done <- edge
 }
@@ -62,7 +61,7 @@ func (self *Runner) finished(edge *Edge) {
 	edge.OutPutReady = true
 	// delete in status map
 	//delete(self.Status, edge)
-	self.Status[edge] = FINISHED
+	self.Status[edge] = STATUS_FINISHED
 
 	// delete rspfile if exist
 	rspfile := edge.QueryVar("rspfile")
@@ -77,6 +76,7 @@ func (self *Runner) finished(edge *Edge) {
 				continue
 			}
 			if outEdge.AllInputReady() {
+				fmt.Printf("schedule, %s, output: %v\n", outEdge.String(), outEdge.OutPutReady)
 				self.scheduleEdge(outEdge)
 			}
 		}
@@ -88,11 +88,13 @@ func (self *Runner) Start() {
 	done := make(chan *Edge)
 
 	parallel := runtime.NumCPU()
+	//parallel := 1
 	running := 0
 	if len(self.RunQueue) == 0 {
 		fmt.Printf("No work to do\n")
 		return
 	}
+
 	fmt.Printf("run %d commands\n", self.runEdges)
 
 Loop:
@@ -102,6 +104,7 @@ Loop:
 			edge := self.RunQueue[0]
 			self.RunQueue = self.RunQueue[1:]
 			if edge.IsPhony() {
+				self.finished(edge)
 				continue
 			}
 
@@ -127,26 +130,27 @@ Loop:
 
 func (self *Runner) scheduleEdge(edge *Edge) {
 	if status, ok := self.Status[edge]; ok {
-		if status == RUNNING || status == FINISHED || status == READY_TO_RUN {
+		if status == STATUS_FINISHED {
+			fmt.Printf("schedule finished Edge : %s\n", edge.String())
 			return
 		}
 	}
 
-	if !edge.IsPhony() {
-		// create rspfile if needed
-		rspfile := edge.QueryVar("rspfile")
-		if rspfile != "" {
-			rsp_content := edge.Rule.QueryVar("rspfile_content")
-			if rsp_content != nil && !rsp_content.Empty() {
-				ioutil.WriteFile(rspfile, []byte(rsp_content.Eval(edge.Scope)), fs.ModePerm)
-			}
+	//if !edge.IsPhony() {
+	// create rspfile if needed
+	rspfile := edge.QueryVar("rspfile")
+	if rspfile != "" {
+		rsp_content := edge.Rule.QueryVar("rspfile_content")
+		if rsp_content != nil && !rsp_content.Empty() {
+			ioutil.WriteFile(rspfile, []byte(rsp_content.Eval(edge.Scope)), fs.ModePerm)
 		}
-		self.RunQueue = append(self.RunQueue, edge)
 	}
+
+	self.RunQueue = append(self.RunQueue, edge)
+	//}
 }
 
 func (self *Runner) AddTarget(node *Node, dep *Node, depth int) error {
-	//fmt.Printf("Addtarget, %s,output: %v\n", node.Path, node.InEdge.OutPutReady)
 
 	if node.InEdge == nil {
 		var err error
@@ -166,15 +170,16 @@ func (self *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 
 	status, ok := self.Status[node.InEdge]
 	if !ok {
-		self.Status[node.InEdge] = READY_TO_RUN
-		status = READY_TO_RUN
+		self.Status[node.InEdge] = STATUS_INIT
+		status = STATUS_INIT
 	}
 
-	if node.Status.Dirty && status == READY_TO_RUN {
-		self.Status[node.InEdge] = RUNNING
+	if node.Status.Dirty && status == STATUS_INIT {
+		self.Status[node.InEdge] = STATUS_RUNNING
 
 		self.runEdges += 1
 		if node.InEdge.AllInputReady() {
+			fmt.Printf("Addtarget, rule: %s, %s, output: %v\n", node.InEdge.Rule.Name, node.Path, node.InEdge.OutPutReady)
 			self.scheduleEdge(node.InEdge)
 		}
 	}

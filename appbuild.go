@@ -101,6 +101,13 @@ func (self *AppBuild) Targets() error {
 	return nil
 }
 
+func (self *AppBuild) QueryNode(path string) *Node {
+	if node, ok := self.Nodes[path]; ok {
+		return node
+	}
+	return nil
+}
+
 func (self *AppBuild) FindNode(path string) *Node {
 	if node, ok := self.Nodes[path]; ok {
 		return node
@@ -244,7 +251,7 @@ func (self *AppBuild) getTargets() []*Node {
 	if len(self.Option.Targets) > 0 {
 		// return self.Option.Targets
 		for _, path := range self.Option.Targets {
-			if node := self.FindNode(path); node != nil {
+			if node := self.QueryNode(path); node != nil {
 				nodesToBuild = append(nodesToBuild, node)
 			}
 		}
@@ -340,7 +347,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 			return false
 		}
 		if exist := node.Exist(); !exist {
-			fmt.Printf("%s has build line, but missing", node.Path)
+			fmt.Printf("%s has build line, but missing\n", node.Path)
 		}
 		// mark dirty if no exist
 		node.SetDirty(!node.Exist())
@@ -437,6 +444,11 @@ func (self *AppBuild) _RunBuild() error {
 	// 2. from default rule
 	// 3. root node which don't have out edge
 	targets := self.getTargets()
+	if len(targets) == 0 {
+		fmt.Printf("no such targets: %s\n", self.Option.Targets)
+		return nil
+	}
+
 	fmt.Printf("Targets: [ ")
 	for _, t := range targets {
 		fmt.Printf("%s ", t.Path)
@@ -452,12 +464,8 @@ func (self *AppBuild) _RunBuild() error {
 				return err
 			}
 		}
-		//fmt.Printf("--------------------------------------\n")
 	}
 
-	//for k, v := range self.Runner.Status {
-	//	fmt.Printf("%s - %d\n", k.Outs[0].Path, v)
-	//}
 	self.Runner.Start()
 
 	return nil

@@ -9,7 +9,7 @@ func cmdHelp(option *BuildOption, flags Flags) (int, error) {
 	if len(args) == 0 {
 		usage := `kulang is yet another Ninja build system
 usage:
-  kulang <command> [args...]
+  kulang [option] <command> [args...]
 commands
 `
 		for _, cmd := range commands {
