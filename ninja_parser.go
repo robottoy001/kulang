@@ -248,6 +248,8 @@ func (self *NinjaParser) parseBuild() {
 		self.App.AddIn(edge, i.Eval(scope))
 	}
 
+	edge.EvalInOut()
+
 	//if !edge.IsPhony() {
 	//	edge.EvalCommand()
 	//}

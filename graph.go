@@ -111,6 +111,22 @@ func (self *Edge) IsPhony() bool {
 	return self.Rule.Name == "phony"
 }
 
+func (self *Edge) QueryVar(varname string) string {
+
+	// in & out
+	varValue := self.Rule.QueryVar(varname)
+	if varValue != nil {
+		return varValue.Eval(self.Scope)
+	}
+
+	varValue = self.Scope.QueryVar(varname)
+	if varValue == nil {
+		return ""
+	}
+
+	return varValue.Eval(self.Scope)
+}
+
 func (self *Edge) EvalInOut() {
 	buffer := new(strings.Builder)
 
@@ -153,10 +169,9 @@ func (self *Edge) EvalInOut() {
 }
 
 func (self *Edge) EvalCommand() string {
-	command := self.Rule.QueryVar("command")
-	self.EvalInOut()
-	v := command.Eval(self.Scope)
-	return v
+	command := self.QueryVar("command")
+	//v := command.Eval(self.Scope)
+	return command
 }
 
 func (self *Node) Stat(fs FileSystem) bool {

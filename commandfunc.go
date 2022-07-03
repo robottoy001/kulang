@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func cmdHelp(flags Flags) (int, error) {
+func cmdHelp(option *BuildOption, flags Flags) (int, error) {
 	args := flags.Args()
 	if len(args) == 0 {
 		usage := `kulang is yet another Ninja build system
@@ -26,7 +26,7 @@ commands
 		return KULANG_ERROR, fmt.Errorf("no such command %s", args[0])
 	}
 
-	result := fmt.Sprintf("%s\n\nUsage:\n  kulang %s %s",
+	result := fmt.Sprintf("%s\n\nUsage:\n  kulang [option] %s   %s",
 		subCmd.Short,
 		subCmd.Name,
 		subCmd.Usage)
@@ -40,15 +40,10 @@ commands
 	return KULANG_SUCCESS, nil
 }
 
-func cmdBuild(flags Flags) (int, error) {
-	dir := flags.FlagSet.Lookup("D").Value.String()
-	configFile := flags.FlagSet.Lookup("config").Value.String()
+func cmdBuild(option *BuildOption, flags Flags) (int, error) {
+	fmt.Printf("%v\n", flags.Args())
 
-	option := &BuildOption{
-		BuildDir:   dir,
-		ConfigFile: configFile,
-		Targets:    flags.Args(),
-	}
+	option.Targets = flags.Args()
 
 	App := NewAppBuild(option)
 	App.Initialize()
@@ -59,7 +54,7 @@ func cmdBuild(flags Flags) (int, error) {
 	return KULANG_SUCCESS, nil
 }
 
-func cmdVersion(flags Flags) (int, error) {
+func cmdVersion(option *BuildOption, flags Flags) (int, error) {
 	const (
 		version = "0.0.1"
 	)
@@ -67,15 +62,9 @@ func cmdVersion(flags Flags) (int, error) {
 	return KULANG_SUCCESS, nil
 }
 
-func cmdTargets(flags Flags) (int, error) {
-	dir := flags.FlagSet.Lookup("D").Value.String()
-	configFile := flags.FlagSet.Lookup("config").Value.String()
+func cmdTargets(option *BuildOption, flags Flags) (int, error) {
 
-	option := &BuildOption{
-		BuildDir:   dir,
-		ConfigFile: configFile,
-		Targets:    flags.Args(),
-	}
+	option.Targets = flags.Args()
 
 	App := NewAppBuild(option)
 	App.Initialize()
@@ -84,5 +73,19 @@ func cmdTargets(flags Flags) (int, error) {
 		return KULANG_ERROR, err
 	}
 	return KULANG_SUCCESS, nil
+}
 
+func cmdClean(option *BuildOption, flags Flags) (int, error) {
+	option.Targets = flags.Args()
+
+	App := NewAppBuild(option)
+	App.Initialize()
+	err := App.Clean()
+
+	if err != nil {
+		return KULANG_ERROR, err
+	}
+	return KULANG_SUCCESS, nil
+
+	return KULANG_SUCCESS, nil
 }

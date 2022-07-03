@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"syscall"
 )
 
 type BuildOption struct {
@@ -68,7 +69,6 @@ func (self *AppBuild) RunBuild() error {
 		return err
 	}
 
-	fmt.Println("start building...")
 	err = self._RunBuild()
 	if err != nil {
 		return err
@@ -150,6 +150,95 @@ func (self AppBuild) AddValids(edge *Edge, path string) {
 	edge.Validations = append(edge.Validations, node)
 }
 
+func (self *AppBuild) removeFiles(file string) error {
+	err := os.Remove(file)
+	if err == nil {
+		return nil
+	}
+
+	if e, ok := err.(*os.PathError); ok {
+		// doesn't exist, otherwise report & return error
+		if e.Err == syscall.ENOENT {
+			return err
+		}
+		fmt.Printf("Error: %s %s\n", e.Op, e.Path)
+	}
+	return err
+}
+
+func (self *AppBuild) cleanAll() error {
+	var cleaned = map[string]bool{}
+	var proceeded int = 0
+	for _, e := range self.Edges {
+		if e.IsPhony() {
+			continue
+		}
+		if e.QueryVar("generator") != "" {
+			fmt.Printf("generator edge, %s\n", e.String())
+			continue
+		}
+		for _, o := range e.Outs {
+			fmt.Printf("Remove :%s\n", o.Path)
+			if _, ok := cleaned[o.Path]; ok {
+				continue
+			}
+			cleaned[o.Path] = true
+			if self.removeFiles(o.Path) == nil {
+				proceeded += 1
+			}
+		}
+		// remove rsp file
+		rspfile := e.QueryVar("rspfile")
+		if rspfile != "" {
+			if _, ok := cleaned[rspfile]; ok {
+				continue
+			}
+			cleaned[rspfile] = true
+			if self.removeFiles(rspfile) == nil {
+				proceeded += 1
+			}
+		}
+		// remve depfile
+		depfile := e.QueryVar("depfile")
+		if depfile != "" {
+			if _, ok := cleaned[rspfile]; ok {
+				continue
+			}
+			cleaned[depfile] = true
+			if self.removeFiles(depfile) == nil {
+				proceeded += 1
+			}
+		}
+
+	}
+	fmt.Printf("Cleaned %d files, %d edges\n", proceeded, len(self.Edges))
+	return nil
+
+}
+
+func (self *AppBuild) Clean() error {
+
+	p := NewParser(self, self.Scope)
+	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err = p.Parse()
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	// clean all
+	if len(self.Option.Targets) == 0 {
+		return self.cleanAll()
+	}
+
+	return nil
+}
+
 func (self *AppBuild) getTargets() []*Node {
 	var nodesToBuild []*Node
 	if len(self.Option.Targets) > 0 {
@@ -195,7 +284,7 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 
 		if most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
 			// TODO: xx restart property
-			fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
+			//fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
 			return true
 		}
 	}
@@ -239,7 +328,7 @@ func identPrint(node *Node, depth int, format string, a ...interface{}) {
 // TODO:xxx need to visit validation nodes
 // STATUS: visit if not
 func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
-	identPrint(node, len(stack), "Begin: %s\n", node.Path)
+	//identPrint(node, len(stack), "Begin: %s\n", node.Path)
 	// leaf node
 	if node.InEdge == nil {
 		if node.StatusKnow() {
@@ -320,14 +409,14 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	// make dirty
 	for _, o := range node.InEdge.Outs {
 		o.SetDirty(dirty)
-		if dirty {
-			fmt.Printf("set dirty %v: %s\n", o.Status.Dirty, o.Path)
-			fmt.Printf("dirty(%v) cur node: %s\n", dirty, node.Path)
-		}
+		//if dirty {
+		//	fmt.Printf("set dirty %v: %s\n", o.Status.Dirty, o.Path)
+		//	fmt.Printf("dirty(%v) cur node: %s\n", dirty, node.Path)
+		//}
 	}
 
 	if dirty && !(node.InEdge.IsPhony() && len(node.InEdge.Ins) == 0) {
-		fmt.Printf("Node %s inEdge's output is false\n", node.Path)
+		//fmt.Printf("Node %s inEdge's output is false\n", node.Path)
 		node.InEdge.OutPutReady = false
 	}
 
@@ -337,7 +426,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	}
 	stack = stack[:len(stack)-1]
 
-	identPrint(node, len(stack), "  end: %s\n", node.Path)
+	//identPrint(node, len(stack), "  end: %s\n", node.Path)
 
 	return true
 }
@@ -358,12 +447,12 @@ func (self *AppBuild) _RunBuild() error {
 		var stack []*Node
 		self.CollectDitryNodes(t, stack)
 		if t.InEdge != nil || !t.InEdge.OutPutReady {
-			err := self.Runner.AddTarget(t, nil)
+			err := self.Runner.AddTarget(t, nil, 0)
 			if err != nil {
 				return err
 			}
 		}
-		fmt.Printf("--------------------------------------\n")
+		//fmt.Printf("--------------------------------------\n")
 	}
 
 	//for k, v := range self.Runner.Status {

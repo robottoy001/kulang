@@ -35,7 +35,7 @@ func dumpFlags(fs *flag.FlagSet) string {
 	return buf.String()
 }
 
-type CommandFunc func(Flags) (int, error)
+type CommandFunc func(*BuildOption, Flags) (int, error)
 
 var commands = make(map[string]Command)
 
@@ -50,17 +50,12 @@ func init() {
 		Usage: "<command>",
 		Short: "Show help message",
 	})
+
 	RegisterCmd(Command{
 		Name:  "build",
 		Func:  cmdBuild,
-		Usage: "[-D <DIR>] [--config=<ninja file>] [targets...]",
+		Usage: "[targets...]",
 		Short: "Build targets which specified",
-		Flags: func() *flag.FlagSet {
-			fs := flag.NewFlagSet("build", flag.ExitOnError)
-			fs.String("D", ".", "directory which include .ninja file")
-			fs.String("config", "build.ninja", "specified .ninja file")
-			return fs
-		}(),
 	})
 
 	RegisterCmd(Command{
@@ -70,11 +65,15 @@ func init() {
 		Short: "Build targets which specified",
 		Flags: func() *flag.FlagSet {
 			fs := flag.NewFlagSet("build", flag.ExitOnError)
-			fs.String("D", ".", "directory which include .ninja file")
-			fs.String("config", "build.ninja", "specified .ninja file")
 			fs.Bool("rule", false, "print all rules")
 			return fs
 		}(),
+	})
+	RegisterCmd(Command{
+		Name:  "clean",
+		Func:  cmdClean,
+		Usage: "Clean built files",
+		Short: "Clean built files",
 	})
 
 	RegisterCmd(Command{

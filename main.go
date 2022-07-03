@@ -11,6 +11,14 @@ import (
 	"syscall"
 )
 
+var workDirectory string
+var configFile string
+
+func init() {
+	flag.StringVar(&workDirectory, "C", ".", "directory which include .ninja file")
+	flag.StringVar(&configFile, "f", "build.ninja", "specified .ninja file")
+}
+
 func enableCpuProfile(cpuProfilePath string) (closer func()) {
 	closer = func() {}
 	if cpuProfilePath != "" {
@@ -57,7 +65,20 @@ func main() {
 		os.Args = append(os.Args, "help")
 	}
 
-	subCmdName := os.Args[1]
+	// main options
+	flag.Parse()
+
+	fmt.Printf("%v\n", flag.Args())
+
+	option := &BuildOption{
+		BuildDir:   workDirectory,
+		ConfigFile: configFile,
+		Targets:    []string{},
+	}
+
+	//subCmdName := os.Args[1]
+	args := flag.Args()
+	subCmdName := args[0]
 	subCmd, ok := commands[subCmdName]
 	if !ok {
 		fmt.Printf("[Error] '%s' is not a recognized command\n", os.Args[1])
@@ -69,13 +90,13 @@ func main() {
 		fs = flag.NewFlagSet(subCmd.Name, flag.ExitOnError)
 	}
 
-	err := fs.Parse(os.Args[2:])
+	err := fs.Parse(args[1:])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(KULANG_ERROR)
 	}
 
-	ret, err := subCmd.Func(Flags{fs})
+	ret, err := subCmd.Func(option, Flags{fs})
 	if err != nil {
 		os.Exit(KULANG_ERROR)
 	}
