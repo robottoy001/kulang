@@ -16,6 +16,7 @@ type Runner struct {
 	Status   map[*Edge]uint8
 	RunQueue []*Edge
 	runEdges int
+	execCmd  int
 }
 
 const (
@@ -30,6 +31,7 @@ func NewRunner() *Runner {
 		Status:   map[*Edge]uint8{},
 		RunQueue: []*Edge{},
 		runEdges: 0,
+		execCmd:  0,
 	}
 }
 
@@ -47,12 +49,17 @@ func (self *Runner) execCommand(command string) {
 
 func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 
-	for _, o := range edge.Outs {
-		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
-	}
+	if !edge.IsPhony() {
 
-	fmt.Printf("%s\n", edge.QueryVar("description"))
-	self.execCommand(edge.EvalCommand())
+		for _, o := range edge.Outs {
+			os.MkdirAll(path.Dir(o.Path), os.ModePerm)
+		}
+
+		fmt.Printf("%s\n", edge.QueryVar("description"))
+		self.execCommand(edge.EvalCommand())
+	} else {
+		fmt.Printf("PHONY: %s\n", edge.String())
+	}
 
 	done <- edge
 }
@@ -60,8 +67,7 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 func (self *Runner) finished(edge *Edge) {
 	edge.OutPutReady = true
 	// delete in status map
-	//delete(self.Status, edge)
-	self.Status[edge] = STATUS_FINISHED
+	delete(self.Status, edge)
 
 	// delete rspfile if exist
 	rspfile := edge.QueryVar("rspfile")
@@ -88,14 +94,13 @@ func (self *Runner) Start() {
 	done := make(chan *Edge)
 
 	parallel := runtime.NumCPU()
-	//parallel := 1
 	running := 0
 	if len(self.RunQueue) == 0 {
 		fmt.Printf("No work to do\n")
 		return
 	}
 
-	fmt.Printf("run %d commands\n", self.runEdges)
+	fmt.Printf("run %d commands, status: %d\n", self.runEdges, len(self.Status))
 
 Loop:
 	for {
@@ -103,13 +108,9 @@ Loop:
 			running += 1
 			edge := self.RunQueue[0]
 			self.RunQueue = self.RunQueue[1:]
-			if edge.IsPhony() {
-				running -= 1
-				self.finished(edge)
-				continue
-			}
 
 			go self.workProcess(edge, done)
+			self.execCmd += 1
 		}
 
 		if running < parallel && len(self.RunQueue) > 0 {
@@ -126,7 +127,7 @@ Loop:
 		}
 	}
 
-	fmt.Printf("Done.\n")
+	fmt.Printf("Done. Executed commands:%d \n", self.execCmd)
 }
 
 func (self *Runner) scheduleEdge(edge *Edge) {
@@ -147,6 +148,7 @@ func (self *Runner) scheduleEdge(edge *Edge) {
 		}
 	}
 
+	self.Status[edge] = STATUS_FINISHED
 	self.RunQueue = append(self.RunQueue, edge)
 	//}
 }
