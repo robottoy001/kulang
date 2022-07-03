@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"syscall"
@@ -41,7 +40,7 @@ func enableCpuProfile(cpuProfilePath string) (closer func()) {
 
 func main() {
 	c := make(chan os.Signal)
-	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
+	//signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
 
 	stop := enableCpuProfile("./cpu.profile")
 	go func() {
@@ -50,7 +49,8 @@ func main() {
 			case syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT:
 				fmt.Printf("Signal: %v, quit.\n", s)
 				stop()
-				os.Exit(KULANG_ERROR)
+				//os.Exit(KULANG_ERROR)
+				panic("signaled")
 			default:
 				fmt.Printf("Got other signal, %v\n", s)
 			}

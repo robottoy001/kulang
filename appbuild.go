@@ -461,6 +461,7 @@ func (self *AppBuild) _RunBuild() error {
 		if t.InEdge != nil || !t.InEdge.OutPutReady {
 			err := self.Runner.AddTarget(t, nil, 0)
 			if err != nil {
+				fmt.Printf("AddTarget failed: %v\n", err)
 				return err
 			}
 		}

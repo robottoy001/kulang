@@ -51,8 +51,8 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
 	}
 
-	//fmt.Printf("%s\n", edge.QueryVar("description"))
-	//self.execCommand(edge.EvalCommand())
+	fmt.Printf("%s\n", edge.QueryVar("description"))
+	self.execCommand(edge.EvalCommand())
 
 	done <- edge
 }
@@ -76,7 +76,7 @@ func (self *Runner) finished(edge *Edge) {
 				continue
 			}
 			if outEdge.AllInputReady() {
-				fmt.Printf("schedule, %s, output: %v\n", outEdge.String(), outEdge.OutPutReady)
+				//fmt.Printf("schedule, %s, output: %v\n", outEdge.String(), outEdge.OutPutReady)
 				self.scheduleEdge(outEdge)
 			}
 		}
@@ -104,6 +104,7 @@ Loop:
 			edge := self.RunQueue[0]
 			self.RunQueue = self.RunQueue[1:]
 			if edge.IsPhony() {
+				running -= 1
 				self.finished(edge)
 				continue
 			}
@@ -192,7 +193,7 @@ func (self *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 	for _, in := range node.InEdge.Ins {
 		err := self.AddTarget(in, node, depth+1)
 		if err != nil {
-			fmt.Printf("AddTarget, input are: %v\n", in)
+			fmt.Printf("AddTarget failed, input are: %v\n", in)
 			return err
 		}
 	}
