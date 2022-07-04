@@ -54,11 +54,24 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 		for _, o := range edge.Outs {
 			os.MkdirAll(path.Dir(o.Path), os.ModePerm)
 		}
+		// create rspfile if needed
+		rspfile := edge.QueryVar("rspfile")
+		if rspfile != "" {
+			rsp_content := edge.Rule.QueryVar("rspfile_content")
+			if rsp_content != nil && !rsp_content.Empty() {
+				ioutil.WriteFile(rspfile, []byte(rsp_content.Eval(edge.Scope)), fs.ModePerm)
+			}
+		}
 
 		fmt.Printf("%s\n", edge.QueryVar("description"))
 		self.execCommand(edge.EvalCommand())
-	} else {
-		fmt.Printf("PHONY: %s\n", edge.String())
+
+		// delete rspfile if exist
+		if rspfile != "" {
+			os.Remove(rspfile)
+		} else {
+			fmt.Printf("PHONY: %s\n", edge.String())
+		}
 	}
 
 	done <- edge
@@ -68,12 +81,6 @@ func (self *Runner) finished(edge *Edge) {
 	edge.OutPutReady = true
 	// delete in status map
 	delete(self.Status, edge)
-
-	// delete rspfile if exist
-	rspfile := edge.QueryVar("rspfile")
-	if rspfile != "" {
-		os.Remove(rspfile)
-	}
 
 	// find next
 	for _, outNode := range edge.Outs {
