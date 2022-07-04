@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"syscall"
 )
 
@@ -42,12 +43,17 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 
 func (self *AppBuild) Initialize() {
 	self.Scope.AppendRule(PhonyRule.Name, PhonyRule)
-	err := os.MkdirAll(self.Option.BuildDir, os.ModePerm)
+	absBuildDir, err := filepath.Abs(filepath.Dir(self.Option.BuildDir))
+	if err != nil {
+		log.Fatal("Get build directory absolute path fail:", err)
+		return
+	}
+	err = os.MkdirAll(absBuildDir, os.ModePerm)
 	if err != nil {
 		log.Fatal("Build directory error: ", err)
 		return
 	}
-	if err != os.Chdir(self.Option.BuildDir) {
+	if err != os.Chdir(absBuildDir) {
 		log.Fatal("Change directory to ", self.Option.BuildDir, " faild")
 	}
 }
