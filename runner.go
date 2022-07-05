@@ -69,12 +69,8 @@ func (r *Runner) workProcess(edge *Edge, done chan *Edge) {
 			}
 		}
 
-		fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
 		r.execCommand(edge.EvalCommand())
 
-		if !edge.IsPhony() {
-			r.execCmd++
-		}
 		// delete rspfile if exist
 		if rspfile != "" {
 			os.Remove(rspfile)
@@ -96,7 +92,11 @@ func (r *Runner) finished(edge *Edge) {
 				continue
 			}
 			if outEdge.AllInputReady() {
-				r.scheduleEdge(outEdge)
+				if r.Status[outEdge] != StatusInit {
+					r.scheduleEdge(outEdge)
+				} else {
+					r.finished(outEdge)
+				}
 			}
 		}
 	}
@@ -114,8 +114,7 @@ func (r *Runner) Start() {
 		return
 	}
 
-	fmt.Printf("run %d commands, status: %d\n", r.runEdges, len(r.Status))
-	return
+	fmt.Printf("run total %d commands, queue: %d\n", r.runEdges, len(r.Status))
 
 Loop:
 	for {
@@ -123,7 +122,10 @@ Loop:
 			running++
 			edge := r.RunQueue[0]
 			r.RunQueue = r.RunQueue[1:]
-
+			if !edge.IsPhony() {
+				r.execCmd++
+			}
+			fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
 			go r.workProcess(edge, done)
 		}
 
@@ -141,7 +143,7 @@ Loop:
 		}
 	}
 
-	fmt.Printf("\nDone. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
+	fmt.Printf("\nDone. Executed:%d, total: %d, status: %d\n", r.execCmd, r.runEdges, len(r.Status))
 }
 
 func (r *Runner) scheduleEdge(edge *Edge) {
@@ -187,7 +189,6 @@ func (r *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 			r.runEdges++
 		}
 		if node.InEdge.AllInputReady() {
-			//fmt.Printf("Addtarget, rule: %s, %s, output: %v\n", node.InEdge.Rule.Name, node.Path, node.InEdge.OutPutReady)
 			r.scheduleEdge(node.InEdge)
 		}
 	}
