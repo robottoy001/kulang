@@ -81,12 +81,6 @@ func NewEdge(rule *Rule) *Edge {
 
 func (self *Edge) String() string {
 	s := fmt.Sprintf("\x1B[31mBUILD\x1B[0m %s: %s ", self.Outs[0].Path, self.Rule.Name)
-	var insStr string
-	//	for i := 0; i < len(self.Ins)-self.ImplicitDeps-self.OrderOnlyDeps; i += 1 {
-	//		insStr += self.Ins[i].Path
-	//		insStr += " "
-	//	}
-	s += insStr
 	return s
 }
 

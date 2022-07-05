@@ -174,7 +174,7 @@ func (self *AppBuild) removeFiles(file string) error {
 		if e.Err == syscall.ENOENT {
 			return err
 		}
-		fmt.Printf("Error: %s %s\n", e.Op, e.Path)
+		fmt.Printf("Error: %s\n", e.Error())
 	}
 	return err
 }
@@ -191,7 +191,6 @@ func (self *AppBuild) cleanAll() error {
 			continue
 		}
 		for _, o := range e.Outs {
-			fmt.Printf("Remove :%s\n", o.Path)
 			if _, ok := cleaned[o.Path]; ok {
 				continue
 			}

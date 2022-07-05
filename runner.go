@@ -11,6 +11,7 @@ import (
 	"runtime"
 )
 
+// Runner exectuate commands
 type Runner struct {
 	Run      chan *Edge
 	Status   map[*Edge]uint8
@@ -20,11 +21,15 @@ type Runner struct {
 }
 
 const (
-	STATUS_INIT uint8 = iota
-	STATUS_RUNNING
-	STATUS_FINISHED
+	// StatusInit initialize edge status
+	StatusInit uint8 = iota
+	// StatusRunning status of edge which is drity & ready to run
+	StatusRunning
+	// StatusFinished status of edge which is scheduled
+	StatusFinished
 )
 
+// NewRunner create new Runner instance
 func NewRunner() *Runner {
 	return &Runner{
 		Run:      make(chan *Edge),
@@ -35,7 +40,7 @@ func NewRunner() *Runner {
 	}
 }
 
-func (self *Runner) execCommand(command string) {
+func (r *Runner) execCommand(command string) {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
@@ -43,11 +48,12 @@ func (self *Runner) execCommand(command string) {
 
 	err := cmd.Run()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m: %s\n", command)
 		log.Fatal(err)
 	}
 }
 
-func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
+func (r *Runner) workProcess(edge *Edge, done chan *Edge) {
 
 	if !edge.IsPhony() {
 
@@ -57,110 +63,99 @@ func (self *Runner) workProcess(edge *Edge, done chan *Edge) {
 		// create rspfile if needed
 		rspfile := edge.QueryVar("rspfile")
 		if rspfile != "" {
-			rsp_content := edge.Rule.QueryVar("rspfile_content")
-			if rsp_content != nil && !rsp_content.Empty() {
-				ioutil.WriteFile(rspfile, []byte(rsp_content.Eval(edge.Scope)), fs.ModePerm)
+			rspContent := edge.Rule.QueryVar("rspfile_content")
+			if rspContent != nil && !rspContent.Empty() {
+				ioutil.WriteFile(rspfile, []byte(rspContent.Eval(edge.Scope)), fs.ModePerm)
 			}
 		}
 
-		fmt.Printf("%s\n", edge.QueryVar("description"))
-		self.execCommand(edge.EvalCommand())
+		fmt.Printf("[%d/%d] %s\r", r.execCmd, r.runEdges, edge.QueryVar("description"))
+		r.execCommand(edge.EvalCommand())
 
+		if !edge.IsPhony() {
+			r.execCmd++
+		}
 		// delete rspfile if exist
 		if rspfile != "" {
 			os.Remove(rspfile)
-		} else {
-			fmt.Printf("PHONY: %s\n", edge.String())
 		}
 	}
 
 	done <- edge
 }
 
-func (self *Runner) finished(edge *Edge) {
+func (r *Runner) finished(edge *Edge) {
 	edge.OutPutReady = true
 	// delete in status map
-	delete(self.Status, edge)
+	delete(r.Status, edge)
 
 	// find next
 	for _, outNode := range edge.Outs {
 		for _, outEdge := range outNode.OutEdges {
-			if _, ok := self.Status[outEdge]; !ok {
+			if _, ok := r.Status[outEdge]; !ok {
 				continue
 			}
 			if outEdge.AllInputReady() {
-				//fmt.Printf("schedule, %s, output: %v\n", outEdge.String(), outEdge.OutPutReady)
-				self.scheduleEdge(outEdge)
+				r.scheduleEdge(outEdge)
 			}
 		}
 	}
 
 }
 
-func (self *Runner) Start() {
+// Start start run edges comand
+func (r *Runner) Start() {
 	done := make(chan *Edge)
 
 	parallel := runtime.NumCPU()
 	running := 0
-	if len(self.RunQueue) == 0 {
+	if len(r.RunQueue) == 0 {
 		fmt.Printf("No work to do\n")
 		return
 	}
 
-	fmt.Printf("run %d commands, status: %d\n", self.runEdges, len(self.Status))
+	fmt.Printf("run %d commands, status: %d\n", r.runEdges, len(r.Status))
 
 Loop:
 	for {
-		if len(self.RunQueue) > 0 {
-			running += 1
-			edge := self.RunQueue[0]
-			self.RunQueue = self.RunQueue[1:]
+		if len(r.RunQueue) > 0 {
+			running++
+			edge := r.RunQueue[0]
+			r.RunQueue = r.RunQueue[1:]
 
-			go self.workProcess(edge, done)
-			self.execCmd += 1
+			go r.workProcess(edge, done)
 		}
 
-		if running < parallel && len(self.RunQueue) > 0 {
+		if running < parallel && len(r.RunQueue) > 0 {
 			continue
 		}
 
 		select {
 		case e := <-done:
-			running -= 1
-			self.finished(e)
-			if running == 0 && len(self.RunQueue) <= 0 {
+			running--
+			r.finished(e)
+			if running == 0 && len(r.RunQueue) <= 0 {
 				break Loop
 			}
 		}
 	}
 
-	fmt.Printf("Done. Executed commands:%d \n", self.execCmd)
+	fmt.Printf("Done. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
 }
 
-func (self *Runner) scheduleEdge(edge *Edge) {
-	if status, ok := self.Status[edge]; ok {
-		if status == STATUS_FINISHED {
-			fmt.Printf("schedule finished Edge : %s\n", edge.String())
+func (r *Runner) scheduleEdge(edge *Edge) {
+	if status, ok := r.Status[edge]; ok {
+		if status == StatusFinished {
 			return
 		}
 	}
 
-	//if !edge.IsPhony() {
-	// create rspfile if needed
-	rspfile := edge.QueryVar("rspfile")
-	if rspfile != "" {
-		rsp_content := edge.Rule.QueryVar("rspfile_content")
-		if rsp_content != nil && !rsp_content.Empty() {
-			ioutil.WriteFile(rspfile, []byte(rsp_content.Eval(edge.Scope)), fs.ModePerm)
-		}
-	}
-
-	self.Status[edge] = STATUS_FINISHED
-	self.RunQueue = append(self.RunQueue, edge)
-	//}
+	r.Status[edge] = StatusFinished
+	r.RunQueue = append(r.RunQueue, edge)
 }
 
-func (self *Runner) AddTarget(node *Node, dep *Node, depth int) error {
+// AddTarget collect dirty nodes & edges
+func (r *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 
 	if node.InEdge == nil {
 		var err error
@@ -178,19 +173,19 @@ func (self *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 		return nil
 	}
 
-	status, ok := self.Status[node.InEdge]
+	status, ok := r.Status[node.InEdge]
 	if !ok {
-		self.Status[node.InEdge] = STATUS_INIT
-		status = STATUS_INIT
+		r.Status[node.InEdge] = StatusInit
+		status = StatusInit
 	}
 
-	if node.Status.Dirty && status == STATUS_INIT {
-		self.Status[node.InEdge] = STATUS_RUNNING
+	if node.Status.Dirty && status == StatusInit {
+		r.Status[node.InEdge] = StatusRunning
 
-		self.runEdges += 1
+		r.runEdges++
 		if node.InEdge.AllInputReady() {
-			fmt.Printf("Addtarget, rule: %s, %s, output: %v\n", node.InEdge.Rule.Name, node.Path, node.InEdge.OutPutReady)
-			self.scheduleEdge(node.InEdge)
+			//fmt.Printf("Addtarget, rule: %s, %s, output: %v\n", node.InEdge.Rule.Name, node.Path, node.InEdge.OutPutReady)
+			r.scheduleEdge(node.InEdge)
 		}
 	}
 
@@ -200,7 +195,7 @@ func (self *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 	}
 
 	for _, in := range node.InEdge.Ins {
-		err := self.AddTarget(in, node, depth+1)
+		err := r.AddTarget(in, node, depth+1)
 		if err != nil {
 			fmt.Printf("AddTarget failed, input are: %v\n", in)
 			return err

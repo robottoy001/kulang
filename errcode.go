@@ -1,6 +1,8 @@
 package main
 
 const (
-	KULANG_SUCCESS = iota
-	KULANG_ERROR
+	// KulangSuccess successed
+	KulangSuccess = iota
+	// KulangError error
+	KulangError
 )

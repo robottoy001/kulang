@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"syscall"
@@ -18,7 +19,7 @@ func init() {
 	flag.StringVar(&configFile, "f", "build.ninja", "specified .ninja file")
 }
 
-func enableCpuProfile(cpuProfilePath string) (closer func()) {
+func enableCPUProfile(cpuProfilePath string) (closer func()) {
 	closer = func() {}
 	if cpuProfilePath != "" {
 		f, err := os.Create(cpuProfilePath)
@@ -40,17 +41,16 @@ func enableCpuProfile(cpuProfilePath string) (closer func()) {
 
 func main() {
 	c := make(chan os.Signal)
-	//signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
 
-	stop := enableCpuProfile("./cpu.profile")
+	stop := enableCPUProfile("./cpu.profile")
 	go func() {
 		for s := range c {
 			switch s {
 			case syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT:
 				fmt.Printf("Signal: %v, quit.\n", s)
 				stop()
-				//os.Exit(KULANG_ERROR)
-				panic("signaled")
+				os.Exit(KULANG_ERROR)
 			default:
 				fmt.Printf("Got other signal, %v\n", s)
 			}
