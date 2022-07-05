@@ -50,7 +50,7 @@ func main() {
 			case syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT:
 				fmt.Printf("Signal: %v, quit.\n", s)
 				stop()
-				os.Exit(KULANG_ERROR)
+				os.Exit(KulangError)
 			default:
 				fmt.Printf("Got other signal, %v\n", s)
 			}
@@ -60,7 +60,7 @@ func main() {
 	switch len(os.Args) {
 	case 0:
 		fmt.Printf("arg[0] must be command\n")
-		os.Exit(KULANG_SUCCESS)
+		os.Exit(KulangSuccess)
 	case 1:
 		os.Args = append(os.Args, "help")
 	}
@@ -83,7 +83,7 @@ func main() {
 	subCmd, ok := commands[subCmdName]
 	if !ok {
 		fmt.Printf("[Error] '%s' is not a recognized command\n", os.Args[1])
-		os.Exit(KULANG_ERROR)
+		os.Exit(KulangError)
 	}
 
 	fs := subCmd.Flags
@@ -94,12 +94,12 @@ func main() {
 	err := fs.Parse(args[1:])
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(KULANG_ERROR)
+		os.Exit(KulangError)
 	}
 
 	ret, err := subCmd.Func(option, Flags{fs})
 	if err != nil {
-		os.Exit(KULANG_ERROR)
+		os.Exit(KulangError)
 	}
 
 	stop()

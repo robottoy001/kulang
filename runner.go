@@ -69,7 +69,7 @@ func (r *Runner) workProcess(edge *Edge, done chan *Edge) {
 			}
 		}
 
-		fmt.Printf("[%d/%d] %s\r", r.execCmd, r.runEdges, edge.QueryVar("description"))
+		fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
 		r.execCommand(edge.EvalCommand())
 
 		if !edge.IsPhony() {
@@ -140,7 +140,7 @@ Loop:
 		}
 	}
 
-	fmt.Printf("Done. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
+	fmt.Printf("\nDone. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
 }
 
 func (r *Runner) scheduleEdge(edge *Edge) {
@@ -182,7 +182,9 @@ func (r *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 	if node.Status.Dirty && status == StatusInit {
 		r.Status[node.InEdge] = StatusRunning
 
-		r.runEdges++
+		if !node.InEdge.IsPhony() {
+			r.runEdges++
+		}
 		if node.InEdge.AllInputReady() {
 			//fmt.Printf("Addtarget, rule: %s, %s, output: %v\n", node.InEdge.Rule.Name, node.Path, node.InEdge.OutPutReady)
 			r.scheduleEdge(node.InEdge)
