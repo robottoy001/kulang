@@ -210,10 +210,15 @@ func (self *NinjaParser) parseBuild() {
 
 	// new Edge
 	//fmt.Println(self.Scope)
-	rule := self.Scope.QueryRule(ruleName)
-	if rule == nil {
-		log.Fatal("Rule: ", ruleName, " doesn't exist")
-		return
+	var rule *Rule
+	if ruleName == PhonyRule.Name {
+		rule = PhonyRule
+	} else {
+		rule = self.Scope.QueryRule(ruleName)
+		if rule == nil {
+			log.Fatal("Rule: ", ruleName, " doesn't exist")
+			return
+		}
 	}
 
 	edge := NewEdge(rule)

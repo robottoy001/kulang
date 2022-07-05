@@ -41,9 +41,9 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 	}
 }
 
-func (self *AppBuild) Initialize() {
-	self.Scope.AppendRule(PhonyRule.Name, PhonyRule)
-	absBuildDir, err := filepath.Abs(filepath.Dir(self.Option.BuildDir))
+func (b *AppBuild) Initialize() {
+	//b.Scope.AppendRule(PhonyRule.Name, PhonyRule)
+	absBuildDir, err := filepath.Abs(filepath.Dir(b.Option.BuildDir))
 	if err != nil {
 		log.Fatal("Get build directory absolute path fail:", err)
 		return
@@ -54,16 +54,16 @@ func (self *AppBuild) Initialize() {
 		return
 	}
 	if err != os.Chdir(absBuildDir) {
-		log.Fatal("Change directory to ", self.Option.BuildDir, " faild")
+		log.Fatal("Change directory to ", b.Option.BuildDir, " faild")
 	}
 }
 
-func (self *AppBuild) RunBuild() error {
+func (b *AppBuild) RunBuild() error {
 
 	// parser load .ninja file
 	// default, Ninja parser & scanner
-	p := NewParser(self, self.Scope)
-	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
+	p := NewParser(b, b.Scope)
+	err := p.Load(path.Join(b.Option.BuildDir, b.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -75,16 +75,16 @@ func (self *AppBuild) RunBuild() error {
 		return err
 	}
 
-	err = self._RunBuild()
+	err = b._RunBuild()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (self *AppBuild) Targets() error {
-	p := NewParser(self, self.Scope)
-	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
+func (b *AppBuild) Targets() error {
+	p := NewParser(b, b.Scope)
+	err := p.Load(path.Join(b.Option.BuildDir, b.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -96,7 +96,7 @@ func (self *AppBuild) Targets() error {
 		return err
 	}
 
-	for _, e := range self.Edges {
+	for _, e := range b.Edges {
 		for _, o := range e.Outs {
 			if len(o.OutEdges) == 0 && o.InEdge != nil {
 				fmt.Printf("%s: %s\n", o.Path, o.InEdge.Rule.Name)
@@ -107,63 +107,63 @@ func (self *AppBuild) Targets() error {
 	return nil
 }
 
-func (self *AppBuild) QueryNode(path string) *Node {
-	if node, ok := self.Nodes[path]; ok {
+func (b *AppBuild) QueryNode(path string) *Node {
+	if node, ok := b.Nodes[path]; ok {
 		return node
 	}
 	return nil
 }
 
-func (self *AppBuild) FindNode(path string) *Node {
-	if node, ok := self.Nodes[path]; ok {
+func (b *AppBuild) FindNode(path string) *Node {
+	if node, ok := b.Nodes[path]; ok {
 		return node
 	}
 	n := NewNode(path)
-	self.Nodes[path] = n
+	b.Nodes[path] = n
 	return n
 }
 
-func (self *AppBuild) AddDefaults(path string) {
-	self.Defaults = append(self.Defaults, self.FindNode(path))
+func (b *AppBuild) AddDefaults(path string) {
+	b.Defaults = append(b.Defaults, b.FindNode(path))
 }
 
-func (self *AppBuild) AddPool(poolName string, depth int) {
-	self.Pools[poolName] = NewPool(poolName, depth)
+func (b *AppBuild) AddPool(poolName string, depth int) {
+	b.Pools[poolName] = NewPool(poolName, depth)
 }
 
-func (self *AppBuild) FindPool(poolName string) *Pool {
-	if pool, ok := self.Pools[poolName]; ok {
+func (b *AppBuild) FindPool(poolName string) *Pool {
+	if pool, ok := b.Pools[poolName]; ok {
 		return pool
 	}
 	return nil
 }
 
-func (self *AppBuild) AddBuild(edge *Edge) {
-	self.Edges = append(self.Edges, edge)
+func (b *AppBuild) AddBuild(edge *Edge) {
+	b.Edges = append(b.Edges, edge)
 }
 
-func (self *AppBuild) AddOut(edge *Edge, path string) {
-	node := self.FindNode(path)
+func (b *AppBuild) AddOut(edge *Edge, path string) {
+	node := b.FindNode(path)
 	// TODO: ignore if exist
 	node.InEdge = edge
 	edge.Outs = append(edge.Outs, node)
 }
 
-func (self AppBuild) AddIn(edge *Edge, path string) {
-	node := self.FindNode(path)
+func (b AppBuild) AddIn(edge *Edge, path string) {
+	node := b.FindNode(path)
 	node.OutEdges = append(node.OutEdges, edge)
 
 	edge.Ins = append(edge.Ins, node)
 }
 
-func (self AppBuild) AddValids(edge *Edge, path string) {
-	node := self.FindNode(path)
+func (b AppBuild) AddValids(edge *Edge, path string) {
+	node := b.FindNode(path)
 	node.ValidOutEdges = append(node.ValidOutEdges, edge)
 
 	edge.Validations = append(edge.Validations, node)
 }
 
-func (self *AppBuild) removeFiles(file string) error {
+func (b *AppBuild) removeFiles(file string) error {
 	err := os.Remove(file)
 	if err == nil {
 		return nil
@@ -179,10 +179,10 @@ func (self *AppBuild) removeFiles(file string) error {
 	return err
 }
 
-func (self *AppBuild) cleanAll() error {
+func (b *AppBuild) cleanAll() error {
 	var cleaned = map[string]bool{}
 	var proceeded int = 0
-	for _, e := range self.Edges {
+	for _, e := range b.Edges {
 		if e.IsPhony() {
 			continue
 		}
@@ -195,7 +195,7 @@ func (self *AppBuild) cleanAll() error {
 				continue
 			}
 			cleaned[o.Path] = true
-			if self.removeFiles(o.Path) == nil {
+			if b.removeFiles(o.Path) == nil {
 				proceeded += 1
 			}
 		}
@@ -206,7 +206,7 @@ func (self *AppBuild) cleanAll() error {
 				continue
 			}
 			cleaned[rspfile] = true
-			if self.removeFiles(rspfile) == nil {
+			if b.removeFiles(rspfile) == nil {
 				proceeded += 1
 			}
 		}
@@ -217,21 +217,21 @@ func (self *AppBuild) cleanAll() error {
 				continue
 			}
 			cleaned[depfile] = true
-			if self.removeFiles(depfile) == nil {
+			if b.removeFiles(depfile) == nil {
 				proceeded += 1
 			}
 		}
 
 	}
-	fmt.Printf("Cleaned %d files, %d edges\n", proceeded, len(self.Edges))
+	fmt.Printf("Cleaned %d files, %d edges\n", proceeded, len(b.Edges))
 	return nil
 
 }
 
-func (self *AppBuild) Clean() error {
+func (b *AppBuild) Clean() error {
 
-	p := NewParser(self, self.Scope)
-	err := p.Load(path.Join(self.Option.BuildDir, self.Option.ConfigFile))
+	p := NewParser(b, b.Scope)
+	err := p.Load(path.Join(b.Option.BuildDir, b.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -244,30 +244,30 @@ func (self *AppBuild) Clean() error {
 	}
 
 	// clean all
-	if len(self.Option.Targets) == 0 {
-		return self.cleanAll()
+	if len(b.Option.Targets) == 0 {
+		return b.cleanAll()
 	}
 
 	return nil
 }
 
-func (self *AppBuild) getTargets() []*Node {
+func (b *AppBuild) getTargets() []*Node {
 	var nodesToBuild []*Node
-	if len(self.Option.Targets) > 0 {
-		// return self.Option.Targets
-		for _, path := range self.Option.Targets {
-			if node := self.QueryNode(path); node != nil {
+	if len(b.Option.Targets) > 0 {
+		// return b.Option.Targets
+		for _, path := range b.Option.Targets {
+			if node := b.QueryNode(path); node != nil {
 				nodesToBuild = append(nodesToBuild, node)
 			}
 		}
 		return nodesToBuild
 	}
 
-	if len(self.Defaults) > 0 {
-		return self.Defaults
+	if len(b.Defaults) > 0 {
+		return b.Defaults
 	}
 
-	for _, e := range self.Edges {
+	for _, e := range b.Edges {
 		for _, o := range e.Outs {
 			if len(o.OutEdges) == 0 {
 				nodesToBuild = append(nodesToBuild, o)
@@ -303,7 +303,7 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 	return false
 }
 
-func (self *AppBuild) verifyDAG(node *Node, stack []*Node) bool {
+func (b *AppBuild) verifyDAG(node *Node, stack []*Node) bool {
 	if node.InEdge.VisitStatus != VISITED_IN_STACK {
 		return true
 	}
@@ -339,7 +339,7 @@ func identPrint(node *Node, depth int, format string, a ...interface{}) {
 
 // TODO:xxx need to visit validation nodes
 // STATUS: visit if not
-func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
+func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	//identPrint(node, len(stack), "Begin: %s\n", node.Path)
 	// leaf node
 	if node.InEdge == nil {
@@ -348,7 +348,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		}
 
 		// check if leaf node exist
-		if ok := node.Stat(self.Fs); !ok {
+		if ok := node.Stat(b.Fs); !ok {
 			return false
 		}
 		if exist := node.Exist(); !exist {
@@ -363,7 +363,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		return true
 	}
 
-	if !self.verifyDAG(node, stack) {
+	if !b.verifyDAG(node, stack) {
 		return false
 	}
 
@@ -378,7 +378,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	// update output mode time & exist status
 	for _, o := range node.InEdge.Outs {
 		//fmt.Printf("    Outs: %s\n", o.Path)
-		if ok := o.Stat(self.Fs); !ok {
+		if ok := o.Stat(b.Fs); !ok {
 			fmt.Printf("out stat err(%v) %s\n", ok, o.Path)
 			return false
 		}
@@ -388,7 +388,7 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	var most_recent_input *Node = nil
 	for index, i := range node.InEdge.Ins {
 		//fmt.Printf("    ints: %s\n", i.Path)
-		if ok := self.CollectDitryNodes(i, stack); !ok {
+		if ok := b.CollectDitryNodes(i, stack); !ok {
 			return false
 		}
 
@@ -443,14 +443,14 @@ func (self *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	return true
 }
 
-func (self *AppBuild) _RunBuild() error {
+func (b *AppBuild) _RunBuild() error {
 	// find target
 	// 1. from commandline
 	// 2. from default rule
 	// 3. root node which don't have out edge
-	targets := self.getTargets()
+	targets := b.getTargets()
 	if len(targets) == 0 {
-		fmt.Printf("no such targets: %s\n", self.Option.Targets)
+		fmt.Printf("no such targets: %s\n", b.Option.Targets)
 		return nil
 	}
 
@@ -462,9 +462,9 @@ func (self *AppBuild) _RunBuild() error {
 
 	for _, t := range targets {
 		var stack []*Node
-		self.CollectDitryNodes(t, stack)
+		b.CollectDitryNodes(t, stack)
 		if t.InEdge != nil || !t.InEdge.OutPutReady {
-			err := self.Runner.AddTarget(t, nil, 0)
+			err := b.Runner.AddTarget(t, nil, 0)
 			if err != nil {
 				fmt.Printf("AddTarget failed: %v\n", err)
 				return err
@@ -472,7 +472,7 @@ func (self *AppBuild) _RunBuild() error {
 		}
 	}
 
-	self.Runner.Start()
+	b.Runner.Start()
 
 	return nil
 }

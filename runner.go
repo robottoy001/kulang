@@ -115,6 +115,7 @@ func (r *Runner) Start() {
 	}
 
 	fmt.Printf("run %d commands, status: %d\n", r.runEdges, len(r.Status))
+	return
 
 Loop:
 	for {

@@ -62,7 +62,7 @@ func init() {
 		Name:  "targets",
 		Func:  cmdTargets,
 		Usage: "[-D <DIR>] [--config=<ninja file>] [switch...]",
-		Short: "Build targets which specified",
+		Short: "Show the targets need to build",
 		Flags: func() *flag.FlagSet {
 			fs := flag.NewFlagSet("build", flag.ExitOnError)
 			fs.Bool("rule", false, "print all rules")
