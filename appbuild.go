@@ -330,13 +330,6 @@ func (b *AppBuild) verifyDAG(node *Node, stack []*Node) bool {
 	return false
 }
 
-func identPrint(node *Node, depth int, format string, a ...interface{}) {
-	for i := 0; i < depth; i += 1 {
-		fmt.Printf(" ")
-	}
-	fmt.Printf(format, a...)
-}
-
 // TODO:xxx need to visit validation nodes
 // STATUS: visit if not
 func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
@@ -377,7 +370,6 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 
 	// update output mode time & exist status
 	for _, o := range node.InEdge.Outs {
-		//fmt.Printf("    Outs: %s\n", o.Path)
 		if ok := o.Stat(b.Fs); !ok {
 			fmt.Printf("out stat err(%v) %s\n", ok, o.Path)
 			return false
@@ -387,7 +379,6 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	// if any input is dirty, current node is dirty
 	var most_recent_input *Node = nil
 	for index, i := range node.InEdge.Ins {
-		//fmt.Printf("    ints: %s\n", i.Path)
 		if ok := b.CollectDitryNodes(i, stack); !ok {
 			return false
 		}
@@ -406,7 +397,6 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 			}
 		}
 	}
-	//fmt.Printf("Most:recent:mtime, %v - path:%s, mode time:%v - node: %s\n",
 	//	most_recent_input.Status.MTime, most_recent_input.Path, i.Status.MTime, i.Path)
 	if most_recent_input != nil {
 
@@ -453,12 +443,6 @@ func (b *AppBuild) _RunBuild() error {
 		fmt.Printf("no such targets: %s\n", b.Option.Targets)
 		return nil
 	}
-
-	fmt.Printf("Targets: [ ")
-	for _, t := range targets {
-		fmt.Printf("%s ", t.Path)
-	}
-	fmt.Printf("]\n")
 
 	for _, t := range targets {
 		var stack []*Node

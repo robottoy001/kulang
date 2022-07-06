@@ -41,8 +41,6 @@ commands
 }
 
 func cmdBuild(option *BuildOption, flags Flags) (int, error) {
-	fmt.Printf("%v\n", flags.Args())
-
 	option.Targets = flags.Args()
 
 	App := NewAppBuild(option)

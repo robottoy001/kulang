@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -48,8 +47,8 @@ func (r *Runner) execCommand(command string) {
 
 	err := cmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m: %s\n", command)
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m:\n%s\n\x1b[31m%s\x1B[0m\n", command, err.Error())
+		os.Exit(KulangError)
 	}
 }
 
@@ -114,7 +113,7 @@ func (r *Runner) Start() {
 		return
 	}
 
-	fmt.Printf("run total %d commands, queue: %d\n", r.runEdges, len(r.Status))
+	fmt.Printf("run total %d commands.\n", r.runEdges)
 
 Loop:
 	for {
@@ -143,7 +142,7 @@ Loop:
 		}
 	}
 
-	fmt.Printf("\nDone. Executed:%d, total: %d, status: %d\n", r.execCmd, r.runEdges, len(r.Status))
+	fmt.Printf("\n\x1B[1;32mSucceed\x1B[0m. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
 }
 
 func (r *Runner) scheduleEdge(edge *Edge) {
