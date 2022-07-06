@@ -57,7 +57,7 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 
 func (b *AppBuild) Initialize() {
 	//b.Scope.AppendRule(PhonyRule.Name, PhonyRule)
-	absBuildDir, err := filepath.Abs(filepath.Dir(b.Option.BuildDir))
+	absBuildDir, err := filepath.Abs(b.Option.BuildDir)
 	if err != nil {
 		log.Fatal("Get build directory absolute path fail:", err)
 		return
