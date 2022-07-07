@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 )
 
 func cmdHelp(option *BuildOption, flags Flags) (int, error) {
@@ -24,11 +25,22 @@ func cmdHelp(option *BuildOption, flags Flags) (int, error) {
 		usage := `kulang is yet another Ninja build system
 usage:
   kulang [option] <command> [args...]
-commands
+option:
 `
+
+		usage += dumpFlags(optionFlag)
+		usage += "commands\n"
+
+		var sortedCommands []string
 		for _, cmd := range commands {
-			usage += fmt.Sprintf("  %-15s %s\n", cmd.Name, cmd.Short)
+			sortedCommands = append(sortedCommands, cmd.Name)
 		}
+
+		sort.Sort(sort.StringSlice(sortedCommands))
+		for _, cmdName := range sortedCommands {
+			usage += fmt.Sprintf("  %-15s %s\n", cmdName, commands[cmdName].Short)
+		}
+
 		fmt.Printf(usage)
 		return KulangSuccess, nil
 	} else if len(args) > 1 {
@@ -84,6 +96,7 @@ func cmdTargets(option *BuildOption, flags Flags) (int, error) {
 	if err != nil {
 		return KulangError, err
 	}
+
 	return KulangSuccess, nil
 }
 
@@ -97,7 +110,6 @@ func cmdClean(option *BuildOption, flags Flags) (int, error) {
 	if err != nil {
 		return KulangError, err
 	}
-	return KulangSuccess, nil
 
 	return KulangSuccess, nil
 }

@@ -25,16 +25,20 @@ import (
 	"syscall"
 )
 
-var workDirectory string
-var configFile string
+var workDirectory *string
+var configFile *string
+var perfCPU *string
+var optionFlag *flag.FlagSet
+var stop = func() {}
 
 func init() {
-	flag.StringVar(&workDirectory, "C", ".", "directory which include .ninja file")
-	flag.StringVar(&configFile, "f", "build.ninja", "specified .ninja file")
+	optionFlag = flag.NewFlagSet("option", flag.ExitOnError)
+	workDirectory = optionFlag.String("C", ".", "directory which include .ninja file")
+	configFile = optionFlag.String("f", "build.ninja", "specified .ninja file")
+	perfCPU = optionFlag.String("perf", "cpuprofile", "Enable cpu profile")
 }
 
 func enableCPUProfile(cpuProfilePath string) (closer func()) {
-	closer = func() {}
 	if cpuProfilePath != "" {
 		f, err := os.Create(cpuProfilePath)
 		if err != nil {
@@ -46,6 +50,7 @@ func enableCPUProfile(cpuProfilePath string) (closer func()) {
 		}
 		closer = pprof.StopCPUProfile
 	}
+
 	runtime.SetBlockProfileRate(20)
 	return
 }
@@ -57,13 +62,14 @@ func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
 
-	stop := enableCPUProfile("./cpu.profile")
 	go func() {
 		for s := range c {
 			switch s {
 			case syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT:
 				fmt.Printf("Signal: %v, quit.\n", s)
-				stop()
+				if *perfCPU != "" {
+					stop()
+				}
 				os.Exit(KulangError)
 			default:
 				fmt.Printf("Got other signal, %v\n", s)
@@ -80,19 +86,27 @@ func main() {
 	}
 
 	// main options
-	flag.Parse()
+	err := optionFlag.Parse(os.Args[1:])
+	if err != nil {
+		fmt.Printf("[Error] %s\n", err.Error())
+		os.Exit(KulangError)
+	}
+
+	if *perfCPU != "" {
+		stop = enableCPUProfile(*perfCPU)
+	}
 
 	option := &BuildOption{
-		BuildDir:   workDirectory,
-		ConfigFile: configFile,
+		BuildDir:   *workDirectory,
+		ConfigFile: *configFile,
 		Targets:    []string{},
 	}
 
-	//subCmdName := os.Args[1]
-	args := flag.Args()
+	args := optionFlag.Args()
 	if len(args) == 0 {
 		args = append(args, "help")
 	}
+
 	subCmdName := args[0]
 	subCmd, ok := commands[subCmdName]
 	if !ok {
@@ -105,7 +119,7 @@ func main() {
 		fs = flag.NewFlagSet(subCmd.Name, flag.ExitOnError)
 	}
 
-	err := fs.Parse(args[1:])
+	err = fs.Parse(args[1:])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(KulangError)
@@ -116,7 +130,9 @@ func main() {
 		os.Exit(KulangError)
 	}
 
-	stop()
+	if *perfCPU != "" {
+		stop()
+	}
 
 	os.Exit(ret)
 }
