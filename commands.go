@@ -83,6 +83,7 @@ func init() {
 			return fs
 		}(),
 	})
+
 	RegisterCmd(Command{
 		Name:  "clean",
 		Func:  cmdClean,

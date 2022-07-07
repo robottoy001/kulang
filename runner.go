@@ -214,7 +214,6 @@ func (r *Runner) AddTarget(node *Node, dep *Node, depth int) error {
 	for _, in := range node.InEdge.Ins {
 		err := r.AddTarget(in, node, depth+1)
 		if err != nil {
-			fmt.Printf("AddTarget failed, input are: %v\n", in)
 			return err
 		}
 	}

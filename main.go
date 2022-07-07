@@ -32,10 +32,10 @@ var optionFlag *flag.FlagSet
 var stop = func() {}
 
 func init() {
-	optionFlag = flag.NewFlagSet("option", flag.ExitOnError)
+	optionFlag = flag.NewFlagSet("option", flag.ContinueOnError)
 	workDirectory = optionFlag.String("C", ".", "directory which include .ninja file")
 	configFile = optionFlag.String("f", "build.ninja", "specified .ninja file")
-	perfCPU = optionFlag.String("perf", "cpuprofile", "Enable cpu profile")
+	perfCPU = optionFlag.String("perf", "", "Enable cpu profile")
 }
 
 func enableCPUProfile(cpuProfilePath string) (closer func()) {
@@ -107,6 +107,7 @@ func main() {
 		args = append(args, "help")
 	}
 
+HELP:
 	subCmdName := args[0]
 	subCmd, ok := commands[subCmdName]
 	if !ok {
@@ -116,17 +117,22 @@ func main() {
 
 	fs := subCmd.Flags
 	if fs == nil {
-		fs = flag.NewFlagSet(subCmd.Name, flag.ExitOnError)
+		fs = flag.NewFlagSet(subCmd.Name, flag.ContinueOnError)
 	}
 
 	err = fs.Parse(args[1:])
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(KulangError)
+		// if flag error, go help command
+		args = []string{
+			"help",
+			subCmd.Name,
+		}
+		goto HELP
 	}
 
 	ret, err := subCmd.Func(option, Flags{fs})
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(KulangError)
 	}
 

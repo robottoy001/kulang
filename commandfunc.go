@@ -52,7 +52,7 @@ option:
 		return KulangError, fmt.Errorf("no such command %s", args[0])
 	}
 
-	result := fmt.Sprintf("%s\n\nUsage:\n  kulang [option] %s   %s",
+	result := fmt.Sprintf("%s\n\nUsage:\n  kulang [option] %s %s",
 		subCmd.Short,
 		subCmd.Name,
 		subCmd.Usage)
