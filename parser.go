@@ -19,16 +19,10 @@ import (
 	"os"
 )
 
-//type Scope struct {
-//	Vaiables map[string]string
-//	Parent   *Scope
-//}
-//
 type Parser struct {
 	Scanner ScannerI
 	App     *AppBuild
 	Scope   *Scope
-	// node,edges
 }
 
 type ParserI interface {

@@ -317,7 +317,7 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 }
 
 func (b *AppBuild) verifyDAG(node *Node, stack []*Node) bool {
-	if node.InEdge.VisitStatus != VISITED_IN_STACK {
+	if node.InEdge.VisitStatus != VisitedInStack {
 		return true
 	}
 
@@ -365,7 +365,7 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		return true
 	}
 
-	if node.InEdge.VisitStatus == VISITED_DONE {
+	if node.InEdge.VisitStatus == VisitedDone {
 		return true
 	}
 
@@ -374,7 +374,7 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	}
 
 	// ninja trace visiting status
-	node.InEdge.VisitStatus = VISITED_IN_STACK
+	node.InEdge.VisitStatus = VisitedInStack
 	stack = append(stack, node)
 	// initial OutPutReady true
 	node.InEdge.OutPutReady = true
@@ -435,7 +435,7 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		node.InEdge.OutPutReady = false
 	}
 
-	node.InEdge.VisitStatus = VISITED_DONE
+	node.InEdge.VisitStatus = VisitedDone
 	if stack[len(stack)-1] != node {
 		log.Fatal("stack is bad")
 	}

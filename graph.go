@@ -29,9 +29,9 @@ const (
 )
 
 const (
-	VISITED_NONE uint8 = iota
-	VISITED_IN_STACK
-	VISITED_DONE
+	VisitedNone uint8 = iota
+	VisitedInStack
+	VisitedDone
 )
 
 type NodeStatus struct {
@@ -86,7 +86,7 @@ func NewEdge(rule *Rule) *Edge {
 		Ins:           []*Node{},
 		Validations:   []*Node{},
 		OutPutReady:   false,
-		VisitStatus:   VISITED_NONE,
+		VisitStatus:   VisitedNone,
 		ImplicitOuts:  0,
 		ImplicitDeps:  0,
 		OrderOnlyDeps: 0,

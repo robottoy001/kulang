@@ -20,30 +20,30 @@ import (
 )
 
 const (
-	TOKEN_BUILD uint8 = iota
-	TOKEN_COLON
-	TOKEN_DEFUALT
-	TOKEN_EQUALS
-	TOKEN_IDENT
-	TOKEN_INCLUDE
-	TOKEN_SUBNINJA
-	TOKEN_INDENT
-	TOKEN_NEWLINE
-	TOKEN_PIPE
-	TOKEN_PIPE2
-	TOKEN_PIPEAT
-	TOKEN_POOL
-	TOKEN_RULE
-	TOKEN_EOF
+	TokenBuild uint8 = iota
+	TokenColon
+	TokenDefault
+	TokenEquals
+	TokenIdent
+	TokenInclude
+	TokenSubninja
+	TokenIndent
+	TokenNewLine
+	TokenPipe
+	TokenPipe2
+	TokenPipeAt
+	TokenPool
+	TokenRule
+	TokenEof
 )
 
 var keyWords = map[string]uint8{
-	"build":    TOKEN_BUILD,
-	"rule":     TOKEN_RULE,
-	"include":  TOKEN_INCLUDE,
-	"subninja": TOKEN_SUBNINJA,
-	"pool":     TOKEN_POOL,
-	"default":  TOKEN_DEFUALT,
+	"build":    TokenBuild,
+	"rule":     TokenRule,
+	"include":  TokenInclude,
+	"subninja": TokenSubninja,
+	"pool":     TokenPool,
+	"default":  TokenDefault,
 }
 
 // totally compatiable with Ninja
@@ -55,7 +55,7 @@ func (self *NinjaScanner) Reset(ct []byte) {
 	self.Content = ct
 
 	tok := Token{
-		Type:    TOKEN_EOF,
+		Type:    TokenEof,
 		Literal: "",
 		Loc: Location{
 			LineNo:    1,
@@ -98,7 +98,6 @@ func (self *NinjaScanner) skipWhiteSpace() {
 }
 
 func (self *NinjaScanner) newLine() {
-	//fmt.Printf("new line %d\n", self.Pos.LineNo)
 	self.Pos.LineNo += 1
 	self.Pos.LineStart = self.Pos.Offset
 }
@@ -113,19 +112,13 @@ func (self *NinjaScanner) BackwardToken() {
 	self.Pos.LineNo = self.LastToken.Loc.LineNo
 	self.Pos.Offset = self.LastToken.Loc.Start
 	self.Pos.LineStart = self.LastToken.Loc.LineStart
-
-	//	fmt.Printf("backToken: type: %d, LineNO: %d, Offset = %d\n",
-	//		self.Pos.LineNo, self.Pos.Offset, self.Pos.LineStart)
 }
 
 func (self *NinjaScanner) PeekToken(expected uint8) bool {
-	//fmt.Printf("Peektoken --begin-----\n")
 	nextToken := self.NextToken()
 	if nextToken.Type == expected {
-		//		fmt.Printf("Peektoken --end true-----\n")
 		return true
 	}
-	//	fmt.Printf("nextToken: %d, expected: %d\n", nextToken.Type, expected)
 	self.BackwardToken()
 	return false
 }
@@ -134,20 +127,11 @@ func (self *NinjaScanner) tokenStart() {
 	self.Token.Loc.LineNo = self.Pos.LineNo
 	self.Token.Loc.Start = self.Pos.Offset
 	self.Token.Loc.LineStart = self.Pos.LineStart
-
-	//	fmt.Printf("tokenStart: Tok: Line: %d-Start %d-LineStart %d\n", self.Pos.LineNo,
-	//		self.Token.Loc.Start, self.Token.Loc.LineStart)
 }
 
 func (self *NinjaScanner) tokenEnd() {
 	self.Token.Loc.End = self.Pos.Offset
 	self.LastToken = self.Token
-
-	//	fmt.Printf("tokenEnd: pos.LineNo %d, pos.Offset %d, LastType: %d, last.Loc.Start:%d\n",
-	//		self.Pos.LineNo, self.Pos.Offset,
-	//		self.LastToken.Type, self.LastToken.Loc.Start)
-	//	fmt.Printf("tokenEnd: Tok: Line: %d-Start %d-LineStart %d\n", self.Pos.LineNo,
-	//		self.Token.Loc.Start, self.Token.Loc.LineStart)
 }
 
 func (self *NinjaScanner) NextToken() Token {
@@ -157,9 +141,9 @@ func (self *NinjaScanner) NextToken() Token {
 		switch {
 		case ch == byte(' ') || ch == byte('\t'):
 			// from new line or start of file
-			if self.LastToken.Type == TOKEN_NEWLINE {
+			if self.LastToken.Type == TokenNewLine {
 				self.skipWhiteSpace()
-				self.Token.Type = TOKEN_INDENT
+				self.Token.Type = TokenIndent
 				self.tokenEnd()
 				return self.Token
 			}
@@ -170,16 +154,14 @@ func (self *NinjaScanner) NextToken() Token {
 			if self.peek() == byte('\n') {
 				self.advance()
 			}
-			//fmt.Printf("nexttoken 2.\n")
 			self.newLine()
-			self.Token.Type = TOKEN_NEWLINE
+			self.Token.Type = TokenNewLine
 			self.tokenEnd()
 			return self.Token
 		case ch == byte('\n'):
-			//fmt.Printf("nexttoken 1.\n")
 			self.newLine()
 			self.advance()
-			self.Token.Type = TOKEN_NEWLINE
+			self.Token.Type = TokenNewLine
 			self.tokenEnd()
 			return self.Token
 		case ch == byte('#'):
@@ -194,12 +176,12 @@ func (self *NinjaScanner) NextToken() Token {
 			self.tokenEnd()
 			return self.Token
 		case ch == ':':
-			self.Token.Type = TOKEN_COLON
+			self.Token.Type = TokenColon
 			self.advance()
 			self.tokenEnd()
 			return self.Token
 		case ch == '=':
-			self.Token.Type = TOKEN_EQUALS
+			self.Token.Type = TokenEquals
 			self.advance()
 			self.tokenEnd()
 			return self.Token
@@ -215,7 +197,7 @@ func (self *NinjaScanner) NextToken() Token {
 			return self.Token
 		// variable
 		case ch == INVALID_CHAR:
-			self.Token.Type = TOKEN_EOF
+			self.Token.Type = TokenEof
 			self.tokenEnd()
 			return self.Token
 		default:
@@ -225,7 +207,6 @@ func (self *NinjaScanner) NextToken() Token {
 			return self.Token
 		}
 	}
-	return Token{Type: TOKEN_EOF}
 }
 
 // Iterator
@@ -255,19 +236,15 @@ func (self *NinjaScanner) next() uint8 {
 
 func (self *NinjaScanner) skipComment() {
 	for {
-		//ch := self.peek()
-		//self.advance()
 		ch := self.next()
 		switch ch {
 		case byte('\r'): // \r
 			if self.peek() == byte('\n') {
 				self.advance()
 			}
-			//fmt.Printf("skipComment.2.\n")
 			self.newLine()
 			return
 		case '\n':
-			//fmt.Printf("skipComment.1.\n")
 			self.newLine()
 			return
 		}
@@ -280,15 +257,15 @@ func (self *NinjaScanner) scanPipe() error {
 	ch := self.peek()
 	switch ch {
 	case '@':
-		self.Token.Type = TOKEN_PIPEAT
+		self.Token.Type = TokenPipeAt
 		self.advance()
 		break
 	case '|':
-		self.Token.Type = TOKEN_PIPE2
+		self.Token.Type = TokenPipe2
 		self.advance()
 		break
 	default:
-		self.Token.Type = TOKEN_PIPE
+		self.Token.Type = TokenPipe
 	}
 	return nil
 }
@@ -298,7 +275,7 @@ func (self *NinjaScanner) getIdentifierType(identifier string) uint8 {
 		return token_type
 	}
 
-	return TOKEN_IDENT
+	return TokenIdent
 }
 
 func (self *NinjaScanner) scanIdentifier() error {
@@ -315,9 +292,7 @@ Loop:
 		}
 	}
 
-	//literal := self.Content[start:self.Pos.Offset]
 	self.Token.Type = self.getIdentifierType(string(self.Content[start:self.Pos.Offset]))
-	//self.Token.Literal = string(literal)
 	self.Token.Loc.Start = start
 	self.Token.Loc.End = self.Pos.Offset
 	return nil
@@ -337,9 +312,7 @@ Loop:
 		}
 	}
 
-	//literal := self.Content[start:self.Pos.Offset]
 	self.Token.Type = self.getIdentifierType(string(self.Content[start:self.Pos.Offset]))
-	//self.Token.Literal = string(literal)
 	self.Token.Loc.Start = start
 	self.Token.Loc.End = self.Pos.Offset
 	return nil
@@ -371,7 +344,6 @@ Loop:
 			if next == '\n' {
 				self.advance()
 				self.skipWhiteSpace()
-				//fmt.Printf("scanValValue.1.\n")
 				self.newLine()
 				break
 			}
@@ -381,7 +353,6 @@ Loop:
 					self.advance()
 				}
 				self.skipWhiteSpace()
-				//fmt.Printf("scanValValue.2.\n")
 				self.newLine()
 				break
 			}
@@ -402,7 +373,6 @@ Loop:
 				if err != nil {
 					panic(err)
 				}
-				//value.Append(self.Token.Literal, strtype)
 				value.Append(string(self.Content[self.Token.Loc.Start:self.Token.Loc.End]), strtype)
 			}
 
@@ -432,7 +402,7 @@ Loop:
 			} else {
 				self.newLine()
 			}
-			self.Token.Type = TOKEN_NEWLINE
+			self.Token.Type = TokenNewLine
 			break Loop
 		case ch == ' ' || ch == '|' || ch == ':':
 			if path {
@@ -458,7 +428,6 @@ Loop:
 func (self *NinjaScanner) ScanIdent() Token {
 	self.skipWhiteSpace()
 	start := self.Pos.Offset
-	//fmt.Printf("ScanIndent begin-------------------\n")
 	self.tokenStart()
 Loop:
 	for {
@@ -473,7 +442,7 @@ Loop:
 	}
 
 	literal := self.Content[start:self.Pos.Offset]
-	self.Token.Type = TOKEN_IDENT
+	self.Token.Type = TokenIdent
 	self.Token.Literal = string(literal)
 	self.tokenEnd()
 	//fmt.Printf("ScanIndent end -------------------\n")
