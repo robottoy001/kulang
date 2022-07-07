@@ -15,7 +15,6 @@
 package main
 
 import (
-	"bytes"
 	"log"
 )
 
@@ -51,8 +50,8 @@ type NinjaScanner struct {
 	*Scanner
 }
 
-func (self *NinjaScanner) Reset(ct []byte) {
-	self.Content = ct
+func (ns *NinjaScanner) Reset(ct []byte) {
+	ns.Content = ct
 
 	tok := Token{
 		Type:    TokenEof,
@@ -64,213 +63,214 @@ func (self *NinjaScanner) Reset(ct []byte) {
 			LineStart: 0,
 		},
 	}
-	self.LastToken = tok
-	self.Token = tok
-	self.Pos.LineNo = 1
-	self.Pos.Offset = 0
-	self.Pos.LineStart = 0
+	ns.LastToken = tok
+	ns.Token = tok
+	ns.Pos.LineNo = 1
+	ns.Pos.Offset = 0
+	ns.Pos.LineStart = 0
+	ns.buffer.Reset()
 }
 
-func (self *NinjaScanner) isIdentifier(ch byte) bool {
+func (ns *NinjaScanner) isIdentifier(ch byte) bool {
 	if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '.' || ch == '-' {
 		return true
 	}
 	return false
 }
 
-func (self *NinjaScanner) isSimpleIdentifier(ch byte) bool {
+func (ns *NinjaScanner) isSimpleIdentifier(ch byte) bool {
 	if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' {
 		return true
 	}
 	return false
 }
 
-func (self *NinjaScanner) skipWhiteSpace() {
+func (ns *NinjaScanner) skipWhiteSpace() {
 	for {
-		ch := self.peek()
+		ch := ns.peek()
 		switch ch {
 		case ' ', '\t':
-			self.advance()
+			ns.advance()
 			continue
 		}
 		break
 	}
 }
 
-func (self *NinjaScanner) newLine() {
-	self.Pos.LineNo += 1
-	self.Pos.LineStart = self.Pos.Offset
+func (ns *NinjaScanner) newLine() {
+	ns.Pos.LineNo += 1
+	ns.Pos.LineStart = ns.Pos.Offset
 }
 
-func (self *NinjaScanner) GetToken() Token {
-	self.Token.Literal = string(self.Content[self.Token.Loc.Start:self.Token.Loc.End])
-	return self.Token
+func (ns *NinjaScanner) GetToken() Token {
+	ns.Token.Literal = string(ns.Content[ns.Token.Loc.Start:ns.Token.Loc.End])
+	return ns.Token
 }
 
-func (self *NinjaScanner) BackwardToken() {
-	self.Token = self.LastToken
-	self.Pos.LineNo = self.LastToken.Loc.LineNo
-	self.Pos.Offset = self.LastToken.Loc.Start
-	self.Pos.LineStart = self.LastToken.Loc.LineStart
+func (ns *NinjaScanner) BackwardToken() {
+	ns.Token = ns.LastToken
+	ns.Pos.LineNo = ns.LastToken.Loc.LineNo
+	ns.Pos.Offset = ns.LastToken.Loc.Start
+	ns.Pos.LineStart = ns.LastToken.Loc.LineStart
 }
 
-func (self *NinjaScanner) PeekToken(expected uint8) bool {
-	nextToken := self.NextToken()
+func (ns *NinjaScanner) PeekToken(expected uint8) bool {
+	nextToken := ns.NextToken()
 	if nextToken.Type == expected {
 		return true
 	}
-	self.BackwardToken()
+	ns.BackwardToken()
 	return false
 }
 
-func (self *NinjaScanner) tokenStart() {
-	self.Token.Loc.LineNo = self.Pos.LineNo
-	self.Token.Loc.Start = self.Pos.Offset
-	self.Token.Loc.LineStart = self.Pos.LineStart
+func (ns *NinjaScanner) tokenStart() {
+	ns.Token.Loc.LineNo = ns.Pos.LineNo
+	ns.Token.Loc.Start = ns.Pos.Offset
+	ns.Token.Loc.LineStart = ns.Pos.LineStart
 }
 
-func (self *NinjaScanner) tokenEnd() {
-	self.Token.Loc.End = self.Pos.Offset
-	self.LastToken = self.Token
+func (ns *NinjaScanner) tokenEnd() {
+	ns.Token.Loc.End = ns.Pos.Offset
+	ns.LastToken = ns.Token
 }
 
-func (self *NinjaScanner) NextToken() Token {
+func (ns *NinjaScanner) NextToken() Token {
 	for {
-		self.tokenStart()
-		ch := self.peek()
+		ns.tokenStart()
+		ch := ns.peek()
 		switch {
 		case ch == byte(' ') || ch == byte('\t'):
 			// from new line or start of file
-			if self.LastToken.Type == TokenNewLine {
-				self.skipWhiteSpace()
-				self.Token.Type = TokenIndent
-				self.tokenEnd()
-				return self.Token
+			if ns.LastToken.Type == TokenNewLine {
+				ns.skipWhiteSpace()
+				ns.Token.Type = TokenIndent
+				ns.tokenEnd()
+				return ns.Token
 			}
-			self.skipWhiteSpace()
+			ns.skipWhiteSpace()
 			continue
 		case ch == byte('\r'):
-			self.advance()
-			if self.peek() == byte('\n') {
-				self.advance()
+			ns.advance()
+			if ns.peek() == byte('\n') {
+				ns.advance()
 			}
-			self.newLine()
-			self.Token.Type = TokenNewLine
-			self.tokenEnd()
-			return self.Token
+			ns.newLine()
+			ns.Token.Type = TokenNewLine
+			ns.tokenEnd()
+			return ns.Token
 		case ch == byte('\n'):
-			self.newLine()
-			self.advance()
-			self.Token.Type = TokenNewLine
-			self.tokenEnd()
-			return self.Token
+			ns.newLine()
+			ns.advance()
+			ns.Token.Type = TokenNewLine
+			ns.tokenEnd()
+			return ns.Token
 		case ch == byte('#'):
-			self.advance()
-			self.skipComment()
+			ns.advance()
+			ns.skipComment()
 			continue
 		case ch == byte('|'):
-			err := self.scanPipe()
+			err := ns.scanPipe()
 			if err != nil {
 				log.Fatal(err)
 			}
-			self.tokenEnd()
-			return self.Token
+			ns.tokenEnd()
+			return ns.Token
 		case ch == ':':
-			self.Token.Type = TokenColon
-			self.advance()
-			self.tokenEnd()
-			return self.Token
+			ns.Token.Type = TokenColon
+			ns.advance()
+			ns.tokenEnd()
+			return ns.Token
 		case ch == '=':
-			self.Token.Type = TokenEquals
-			self.advance()
-			self.tokenEnd()
-			return self.Token
+			ns.Token.Type = TokenEquals
+			ns.advance()
+			ns.tokenEnd()
+			return ns.Token
 			// keywords
 			// build, rule,pool, default
 			// include, subninja
-		case self.isIdentifier(ch) == true:
-			err := self.scanIdentifier()
+		case ns.isIdentifier(ch) == true:
+			err := ns.scanIdentifier()
 			if err != nil {
 				log.Fatal(err)
 			}
-			self.tokenEnd()
-			return self.Token
+			ns.tokenEnd()
+			return ns.Token
 		// variable
 		case ch == INVALID_CHAR:
-			self.Token.Type = TokenEof
-			self.tokenEnd()
-			return self.Token
+			ns.Token.Type = TokenEof
+			ns.tokenEnd()
+			return ns.Token
 		default:
 			// error
 			log.Panicf("unexpected token (%s) in Line: %d, Col: %d",
-				string(ch), self.Pos.LineNo, self.Pos.Offset-self.Pos.LineStart)
-			return self.Token
+				string(ch), ns.Pos.LineNo, ns.Pos.Offset-ns.Pos.LineStart)
+			return ns.Token
 		}
 	}
 }
 
 // Iterator
-func (self *NinjaScanner) advance() {
-	self.Pos.Offset += 1
+func (ns *NinjaScanner) advance() {
+	ns.Pos.Offset += 1
 }
-func (self *NinjaScanner) backward() {
-	self.Pos.Offset -= 1
-}
-
-func (self *NinjaScanner) hasNext() bool {
-	return self.Pos.Offset <= uint32((len(self.Content) - 1))
+func (ns *NinjaScanner) backward() {
+	ns.Pos.Offset -= 1
 }
 
-func (self *NinjaScanner) peek() uint8 {
-	if self.hasNext() {
-		return self.Content[self.Pos.Offset]
+func (ns *NinjaScanner) hasNext() bool {
+	return ns.Pos.Offset <= uint32((len(ns.Content) - 1))
+}
+
+func (ns *NinjaScanner) peek() uint8 {
+	if ns.hasNext() {
+		return ns.Content[ns.Pos.Offset]
 	}
 	return INVALID_CHAR
 }
 
-func (self *NinjaScanner) next() uint8 {
-	n := self.peek()
-	self.advance()
+func (ns *NinjaScanner) next() uint8 {
+	n := ns.peek()
+	ns.advance()
 	return n
 }
 
-func (self *NinjaScanner) skipComment() {
+func (ns *NinjaScanner) skipComment() {
 	for {
-		ch := self.next()
+		ch := ns.next()
 		switch ch {
 		case byte('\r'): // \r
-			if self.peek() == byte('\n') {
-				self.advance()
+			if ns.peek() == byte('\n') {
+				ns.advance()
 			}
-			self.newLine()
+			ns.newLine()
 			return
 		case '\n':
-			self.newLine()
+			ns.newLine()
 			return
 		}
 	} //for
 }
 
-func (self *NinjaScanner) scanPipe() error {
-	self.advance()
+func (ns *NinjaScanner) scanPipe() error {
+	ns.advance()
 
-	ch := self.peek()
+	ch := ns.peek()
 	switch ch {
 	case '@':
-		self.Token.Type = TokenPipeAt
-		self.advance()
+		ns.Token.Type = TokenPipeAt
+		ns.advance()
 		break
 	case '|':
-		self.Token.Type = TokenPipe2
-		self.advance()
+		ns.Token.Type = TokenPipe2
+		ns.advance()
 		break
 	default:
-		self.Token.Type = TokenPipe
+		ns.Token.Type = TokenPipe
 	}
 	return nil
 }
 
-func (self *NinjaScanner) getIdentifierType(identifier string) uint8 {
+func (ns *NinjaScanner) getIdentifierType(identifier string) uint8 {
 	if token_type, ok := keyWords[identifier]; ok {
 		return token_type
 	}
@@ -278,117 +278,120 @@ func (self *NinjaScanner) getIdentifierType(identifier string) uint8 {
 	return TokenIdent
 }
 
-func (self *NinjaScanner) scanIdentifier() error {
-	start := self.Pos.Offset
+func (ns *NinjaScanner) scanIdentifier() error {
+	start := ns.Pos.Offset
 Loop:
 	for {
-		self.advance()
-		ch := self.peek()
+		ns.advance()
+		ch := ns.peek()
 		switch {
-		case self.isIdentifier(ch):
+		case ns.isIdentifier(ch):
 			continue
 		default:
 			break Loop
 		}
 	}
 
-	self.Token.Type = self.getIdentifierType(string(self.Content[start:self.Pos.Offset]))
-	self.Token.Loc.Start = start
-	self.Token.Loc.End = self.Pos.Offset
+	ns.Token.Type = ns.getIdentifierType(string(ns.Content[start:ns.Pos.Offset]))
+	ns.Token.Loc.Start = start
+	ns.Token.Loc.End = ns.Pos.Offset
 	return nil
 }
 
-func (self *NinjaScanner) scanSimpleIdentifier() error {
-	start := self.Pos.Offset
+func (ns *NinjaScanner) scanSimpleIdentifier() error {
+	start := ns.Pos.Offset
 Loop:
 	for {
-		self.advance()
-		ch := self.peek()
+		ns.advance()
+		ch := ns.peek()
 		switch {
-		case self.isSimpleIdentifier(ch):
+		case ns.isSimpleIdentifier(ch):
 			continue
 		default:
 			break Loop
 		}
 	}
 
-	self.Token.Type = self.getIdentifierType(string(self.Content[start:self.Pos.Offset]))
-	self.Token.Loc.Start = start
-	self.Token.Loc.End = self.Pos.Offset
+	ns.Token.Type = ns.getIdentifierType(string(ns.Content[start:ns.Pos.Offset]))
+	ns.Token.Loc.Start = start
+	ns.Token.Loc.End = ns.Pos.Offset
 	return nil
 }
 
-func (self *NinjaScanner) ScanVarValue(path bool) (*VarString, error) {
-	self.skipWhiteSpace()
+func (ns *NinjaScanner) ScanVarValue(path bool) (*VarString, error) {
+	ns.skipWhiteSpace()
 	var value VarString
-	var tmpStr bytes.Buffer
+	//var tmpStr bytes.Buffer
 	var strtype StrType = ORGINAL
 	var err error = nil
 
-	tmpStr.Grow(1024)
-	self.tokenStart()
+	ns.tokenStart()
 Loop:
 	for {
-		ch := self.peek()
-		self.advance()
+		ch := ns.peek()
+		ns.advance()
 		switch {
 		case ch == '$':
-			next := self.peek()
+			next := ns.peek()
 			// escape
 			if next == ':' || next == '$' || next == ' ' {
-				tmpStr.WriteByte(next)
-				self.advance()
+				//tmpStr.WriteByte(next)
+				ns.buffer.WriteByte(next)
+				ns.advance()
 				break
 			}
 			// continue
 			if next == '\n' {
-				self.advance()
-				self.skipWhiteSpace()
-				self.newLine()
+				ns.advance()
+				ns.skipWhiteSpace()
+				ns.newLine()
 				break
 			}
 			if next == '\r' {
-				self.advance()
-				if self.peek() == '\n' {
-					self.advance()
+				ns.advance()
+				if ns.peek() == '\n' {
+					ns.advance()
 				}
-				self.skipWhiteSpace()
-				self.newLine()
+				ns.skipWhiteSpace()
+				ns.newLine()
 				break
 			}
 
 			// variable name
 			if next == '{' {
 				// save normal string if have
-				if tmpStr.Len() != 0 {
-					value.Append(tmpStr.String(), strtype)
+				if ns.buffer.Len() != 0 {
+					//value.Append(tmpStr.String(), strtype)
+					value.Append(ns.buffer.String(), strtype)
 				}
 
-				self.advance()
+				ns.advance()
 
-				tmpStr.Truncate(0)
+				ns.buffer.Reset()
 				// scan ${varname}
 				strtype = VARIABLE
-				err := self.scanIdentifier()
+				err := ns.scanIdentifier()
 				if err != nil {
 					panic(err)
 				}
-				value.Append(string(self.Content[self.Token.Loc.Start:self.Token.Loc.End]), strtype)
+				value.Append(string(ns.Content[ns.Token.Loc.Start:ns.Token.Loc.End]), strtype)
 			}
 
-			if self.isSimpleIdentifier(next) {
-				if tmpStr.Len() != 0 {
-					value.Append(tmpStr.String(), strtype)
+			if ns.isSimpleIdentifier(next) {
+				if ns.buffer.Len() != 0 {
+					//value.Append(tmpStr.String(), strtype)
+					value.Append(ns.buffer.String(), strtype)
 				}
 
-				tmpStr.Truncate(0)
+				ns.buffer.Reset()
+
 				// scan ${varname}
 				strtype = VARIABLE
-				err := self.scanSimpleIdentifier()
+				err := ns.scanSimpleIdentifier()
 				if err != nil {
 					panic(err)
 				}
-				value.Append(string(self.Content[self.Token.Loc.Start:self.Token.Loc.End]), strtype)
+				value.Append(string(ns.Content[ns.Token.Loc.Start:ns.Token.Loc.End]), strtype)
 				strtype = ORGINAL
 			}
 			break
@@ -398,54 +401,59 @@ Loop:
 			break
 		case ch == '\r' || ch == '\n':
 			if path {
-				self.backward()
+				ns.backward()
 			} else {
-				self.newLine()
+				ns.newLine()
 			}
-			self.Token.Type = TokenNewLine
+			ns.Token.Type = TokenNewLine
 			break Loop
 		case ch == ' ' || ch == '|' || ch == ':':
 			if path {
-				self.backward()
+				ns.backward()
 				break Loop
 			}
-			tmpStr.WriteByte(ch)
+			//tmpStr.WriteByte(ch)
+			ns.buffer.WriteByte(ch)
 		case ch == INVALID_CHAR:
 			break Loop
 		default:
-			tmpStr.WriteByte(ch)
+			//tmpStr.WriteByte(ch)
+			ns.buffer.WriteByte(ch)
 		}
 	}
-	if tmpStr.Len() != 0 {
-		value.Append(tmpStr.String(), strtype)
+	if ns.buffer.Len() != 0 {
+		//value.Append(tmpStr.String(), strtype)
+		value.Append(ns.buffer.String(), strtype)
 	}
 
-	self.tokenEnd()
+	ns.buffer.Reset()
+
+	ns.tokenEnd()
 
 	return &value, err
 }
 
-func (self *NinjaScanner) ScanIdent() Token {
-	self.skipWhiteSpace()
-	start := self.Pos.Offset
-	self.tokenStart()
+func (ns *NinjaScanner) ScanIdent() Token {
+	ns.skipWhiteSpace()
+	start := ns.Pos.Offset
+	ns.tokenStart()
 Loop:
 	for {
-		self.advance()
-		ch := self.peek()
+		ns.advance()
+		ch := ns.peek()
 		switch {
-		case self.isIdentifier(ch):
+		case ns.isIdentifier(ch):
 			continue
 		default:
 			break Loop
 		}
 	}
 
-	literal := self.Content[start:self.Pos.Offset]
-	self.Token.Type = TokenIdent
-	self.Token.Literal = string(literal)
-	self.tokenEnd()
+	literal := ns.Content[start:ns.Pos.Offset]
+	ns.Token.Type = TokenIdent
+	ns.Token.Literal = string(literal)
+	ns.tokenEnd()
 	//fmt.Printf("ScanIndent end -------------------\n")
-	return self.Token
+	return ns.Token
 
 }

@@ -47,7 +47,7 @@ func NewParserWithScanner(scanner_type uint8) ParserI {
 	}
 }
 
-func (self *Parser) Load(fileName string) error {
+func (p *Parser) Load(fileName string) error {
 	f, err := os.Open(fileName)
 	if err != nil {
 		return err
@@ -58,6 +58,6 @@ func (self *Parser) Load(fileName string) error {
 		return err
 	}
 
-	self.Scanner.Reset(ct)
+	p.Scanner.Reset(ct)
 	return nil
 }

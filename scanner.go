@@ -14,6 +14,8 @@
  */
 package main
 
+import "bytes"
+
 const (
 	SCANNER_NINJA uint8 = iota
 )
@@ -46,6 +48,7 @@ type Scanner struct {
 	Token     Token
 	LastToken Token
 	Pos       *Position
+	buffer    bytes.Buffer
 }
 
 type ScannerI interface {
@@ -67,10 +70,10 @@ func NewScanner(scanner_type uint8, content []byte) ScannerI {
 				Offset: 0,
 				LineNo: 0,
 			},
+			buffer: *bytes.NewBuffer(make([]byte, 512)),
 		},
 		}
 	default:
 		return nil
 	}
-	return nil
 }
