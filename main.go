@@ -35,7 +35,7 @@ func init() {
 	optionFlag = flag.NewFlagSet("option", flag.ContinueOnError)
 	workDirectory = optionFlag.String("C", ".", "directory which include .ninja file")
 	configFile = optionFlag.String("f", "build.ninja", "specified .ninja file")
-	perfCPU = optionFlag.String("perf", "", "Enable cpu profile")
+	perfCPU = optionFlag.String("perf", "", "enable cpu profile")
 }
 
 func enableCPUProfile(cpuProfilePath string) (closer func()) {
@@ -59,11 +59,11 @@ func enableCPUProfile(cpuProfilePath string) (closer func()) {
 //   build  run build script to build the target
 
 func main() {
-	c := make(chan os.Signal)
-	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
+	sc := make(chan os.Signal)
+	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
 
 	go func() {
-		for s := range c {
+		for s := range sc {
 			switch s {
 			case syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT:
 				fmt.Printf("Signal: %v, quit.\n", s)
@@ -102,6 +102,7 @@ func main() {
 		Targets:    []string{},
 	}
 
+	// subcommands options
 	args := optionFlag.Args()
 	if len(args) == 0 {
 		args = append(args, "help")
