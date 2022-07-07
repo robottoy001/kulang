@@ -80,7 +80,7 @@ func cmdBuild(option *BuildOption, flags Flags) (int, error) {
 
 func cmdVersion(option *BuildOption, flags Flags) (int, error) {
 	const (
-		version = "0.0.1"
+		version = "0.0.2"
 	)
 	fmt.Printf("kulang %s\n", version)
 	return KulangSuccess, nil
