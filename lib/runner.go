@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package main
+package lib
 
 import (
 	"fmt"
@@ -22,6 +22,8 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+
+	"gitee.com/kulang/utils"
 )
 
 // Runner exectuate commands
@@ -31,6 +33,7 @@ type Runner struct {
 	RunQueue []*Edge
 	runEdges int
 	execCmd  int
+	done     chan *Edge
 }
 
 const (
@@ -50,6 +53,7 @@ func NewRunner() *Runner {
 		RunQueue: []*Edge{},
 		runEdges: 0,
 		execCmd:  0,
+		done:     make(chan *Edge),
 	}
 }
 
@@ -62,11 +66,11 @@ func (r *Runner) execCommand(command string) {
 	err := cmd.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m:\n%s\n\x1b[31m%s\x1B[0m\n", command, err.Error())
-		os.Exit(KulangError)
+		os.Exit(utils.KulangError)
 	}
 }
 
-func (r *Runner) workProcess(edge *Edge, done chan *Edge) {
+func (r *Runner) workProcess(edge *Edge) {
 
 	if !edge.IsPhony() {
 
@@ -90,7 +94,7 @@ func (r *Runner) workProcess(edge *Edge, done chan *Edge) {
 		}
 	}
 
-	done <- edge
+	r.done <- edge
 }
 
 func (r *Runner) finished(edge *Edge) {
@@ -118,7 +122,6 @@ func (r *Runner) finished(edge *Edge) {
 
 // Start start run edges comand
 func (r *Runner) Start() {
-	done := make(chan *Edge)
 
 	parallel := runtime.NumCPU()
 	running := 0
@@ -141,7 +144,7 @@ Loop:
 
 			fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
 			//fmt.Printf("%s\n", edge.EvalCommand())
-			go r.workProcess(edge, done)
+			go r.workProcess(edge)
 		}
 
 		if running < parallel && len(r.RunQueue) > 0 {
@@ -149,7 +152,7 @@ Loop:
 		}
 
 		select {
-		case e := <-done:
+		case e := <-r.done:
 			running--
 			r.finished(e)
 			if running == 0 && len(r.RunQueue) <= 0 {

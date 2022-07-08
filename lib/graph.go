@@ -12,20 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package main
+package lib
 
 import (
 	"fmt"
 	"strings"
 	"time"
-)
 
-type ExistenceStatus uint8
-
-const (
-	ExistenceStatusUnknown ExistenceStatus = iota
-	ExistenceStatusMissing
-	ExistenceStatusExist
+	"gitee.com/kulang/utils"
 )
 
 const (
@@ -36,7 +30,7 @@ const (
 
 type NodeStatus struct {
 	Dirty bool
-	Exist ExistenceStatus
+	Exist utils.ExistenceStatus
 	MTime time.Time
 }
 
@@ -72,7 +66,7 @@ func NewNode(path string) *Node {
 		ValidOutEdges: []*Edge{},
 		Status: NodeStatus{
 			Dirty: false,
-			Exist: ExistenceStatusUnknown,
+			Exist: utils.ExistenceStatusUnknown,
 			MTime: time.Time{},
 		},
 	}
@@ -189,7 +183,7 @@ func (e *Edge) EvalCommand() string {
 	return command
 }
 
-func (e *Node) Stat(fs FileSystem) bool {
+func (e *Node) Stat(fs utils.FileSystem) bool {
 	finfo, err := fs.Stat(e.Path)
 	if err != nil {
 		e.Status.Exist = finfo.Exist
@@ -202,11 +196,11 @@ func (e *Node) Stat(fs FileSystem) bool {
 }
 
 func (e *Node) StatusKnow() bool {
-	return e.Status.Exist != ExistenceStatusUnknown
+	return e.Status.Exist != utils.ExistenceStatusUnknown
 }
 
 func (e *Node) Exist() bool {
-	return e.Status.Exist == ExistenceStatusExist
+	return e.Status.Exist == utils.ExistenceStatusExist
 }
 
 func (e *Node) SetDirty(dirty bool) {

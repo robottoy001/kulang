@@ -17,9 +17,12 @@ package main
 import (
 	"fmt"
 	"sort"
+
+	"gitee.com/kulang/lib"
+	"gitee.com/kulang/utils"
 )
 
-func cmdHelp(option *BuildOption, flags Flags) (int, error) {
+func cmdHelp(option *lib.BuildOption, flags Flags) (int, error) {
 	args := flags.Args()
 	if len(args) == 0 {
 		usage := `kulang is yet another Ninja build system
@@ -42,14 +45,14 @@ option:
 		}
 
 		fmt.Printf(usage)
-		return KulangSuccess, nil
+		return utils.KulangSuccess, nil
 	} else if len(args) > 1 {
-		return KulangError, fmt.Errorf("only can be one command")
+		return utils.KulangError, fmt.Errorf("only can be one command")
 	}
 
 	subCmd, ok := commands[args[0]]
 	if !ok {
-		return KulangError, fmt.Errorf("no such command %s", args[0])
+		return utils.KulangError, fmt.Errorf("no such command %s", args[0])
 	}
 
 	result := fmt.Sprintf("%s\n\nUsage:\n  kulang [option] %s %s",
@@ -63,53 +66,53 @@ option:
 		fmt.Printf("flags:\n%s\n", flagsText)
 	}
 
-	return KulangSuccess, nil
+	return utils.KulangSuccess, nil
 }
 
-func cmdBuild(option *BuildOption, flags Flags) (int, error) {
+func cmdBuild(option *lib.BuildOption, flags Flags) (int, error) {
 	option.Targets = flags.Args()
 
-	App := NewAppBuild(option)
+	App := lib.NewAppBuild(option)
 	App.Initialize()
 	err := App.RunBuild()
 	if err != nil {
-		return KulangError, err
+		return utils.KulangError, err
 	}
-	return KulangSuccess, nil
+	return utils.KulangSuccess, nil
 }
 
-func cmdVersion(option *BuildOption, flags Flags) (int, error) {
+func cmdVersion(option *lib.BuildOption, flags Flags) (int, error) {
 	const (
 		version = "0.0.2"
 	)
 	fmt.Printf("kulang %s\n", version)
-	return KulangSuccess, nil
+	return utils.KulangSuccess, nil
 }
 
-func cmdTargets(option *BuildOption, flags Flags) (int, error) {
+func cmdTargets(option *lib.BuildOption, flags Flags) (int, error) {
 
 	option.Targets = flags.Args()
 
-	App := NewAppBuild(option)
+	App := lib.NewAppBuild(option)
 	App.Initialize()
 	err := App.Targets()
 	if err != nil {
-		return KulangError, err
+		return utils.KulangError, err
 	}
 
-	return KulangSuccess, nil
+	return utils.KulangSuccess, nil
 }
 
-func cmdClean(option *BuildOption, flags Flags) (int, error) {
+func cmdClean(option *lib.BuildOption, flags Flags) (int, error) {
 	option.Targets = flags.Args()
 
-	App := NewAppBuild(option)
+	App := lib.NewAppBuild(option)
 	App.Initialize()
 	err := App.Clean()
 
 	if err != nil {
-		return KulangError, err
+		return utils.KulangError, err
 	}
 
-	return KulangSuccess, nil
+	return utils.KulangSuccess, nil
 }

@@ -12,12 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package main
+package utils
 
 import (
 	"fmt"
 	"os"
 	"time"
+)
+
+type ExistenceStatus uint8
+
+const (
+	ExistenceStatusUnknown ExistenceStatus = iota
+	ExistenceStatusMissing
+	ExistenceStatusExist
 )
 
 type FileInfo struct {

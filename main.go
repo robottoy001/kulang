@@ -23,6 +23,9 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"syscall"
+
+	"gitee.com/kulang/lib"
+	"gitee.com/kulang/utils"
 )
 
 var workDirectory *string
@@ -72,7 +75,7 @@ func main() {
 				if *perfCPU != "" {
 					stop()
 				}
-				os.Exit(KulangError)
+				os.Exit(utils.KulangError)
 			default:
 				fmt.Printf("Got other signal, %v\n", s)
 			}
@@ -82,7 +85,7 @@ func main() {
 	switch len(os.Args) {
 	case 0:
 		fmt.Printf("arg[0] must be command\n")
-		os.Exit(KulangSuccess)
+		os.Exit(utils.KulangSuccess)
 	case 1:
 		os.Args = append(os.Args, "help")
 	}
@@ -91,14 +94,14 @@ func main() {
 	err := optionFlag.Parse(os.Args[1:])
 	if err != nil {
 		fmt.Printf("[Error] %s\n", err.Error())
-		os.Exit(KulangError)
+		os.Exit(utils.KulangError)
 	}
 
 	if *perfCPU != "" {
 		stop = enableCPUProfile(*perfCPU)
 	}
 
-	option := &BuildOption{
+	option := &lib.BuildOption{
 		BuildDir:   *workDirectory,
 		ConfigFile: *configFile,
 		Verbose:    *verbose,
@@ -116,7 +119,7 @@ HELP:
 	subCmd, ok := commands[subCmdName]
 	if !ok {
 		fmt.Printf("[Error] '%s' is not a recognized command\n", os.Args[1])
-		os.Exit(KulangError)
+		os.Exit(utils.KulangError)
 	}
 
 	fs := subCmd.Flags
@@ -137,7 +140,7 @@ HELP:
 	ret, err := subCmd.Func(option, Flags{fs})
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(KulangError)
+		os.Exit(utils.KulangError)
 	}
 
 	if *perfCPU != "" {

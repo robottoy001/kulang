@@ -12,11 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package main
+package lib
 
-type State uint8
+type Pool struct {
+	Name  string
+	Depth int
+}
 
-const (
-	PARSER_ERROR State = iota
-	PARSER_SUCCESS
-)
+func NewPool(name string, depth int) *Pool {
+	return &Pool{
+		Name:  name,
+		Depth: depth,
+	}
+}

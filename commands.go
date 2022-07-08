@@ -17,6 +17,8 @@ package main
 import (
 	"bytes"
 	"flag"
+
+	"gitee.com/kulang/lib"
 )
 
 type Command struct {
@@ -49,7 +51,7 @@ func dumpFlags(fs *flag.FlagSet) string {
 	return buf.String()
 }
 
-type CommandFunc func(*BuildOption, Flags) (int, error)
+type CommandFunc func(*lib.BuildOption, Flags) (int, error)
 
 var commands = make(map[string]Command)
 

@@ -12,16 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package main
+package utils
 
-type Pool struct {
-	Name  string
-	Depth int
-}
-
-func NewPool(name string, depth int) *Pool {
-	return &Pool{
-		Name:  name,
-		Depth: depth,
-	}
-}
+const (
+	// KulangSuccess successed
+	KulangSuccess = iota
+	// KulangError error
+	KulangError
+)

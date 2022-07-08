@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package main
+package lib
 
 import (
 	"fmt"
@@ -21,6 +21,8 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
+
+	"gitee.com/kulang/utils"
 )
 
 type BuildOption struct {
@@ -40,7 +42,7 @@ type AppBuild struct {
 	Pools    map[string]*Pool
 	Edges    []*Edge
 	Runner   *Runner
-	Fs       FileSystem
+	Fs       utils.FileSystem
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
@@ -52,7 +54,7 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 		Pools:    make(map[string]*Pool),
 		Edges:    []*Edge{},
 		Runner:   NewRunner(),
-		Fs:       RealFileSystem{},
+		Fs:       utils.RealFileSystem{},
 	}
 }
 
