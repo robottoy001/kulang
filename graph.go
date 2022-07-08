@@ -49,14 +49,15 @@ type Node struct {
 }
 
 type Edge struct {
-	Rule        *Rule
-	Pool        *Pool
-	Scope       *Scope
-	Outs        []*Node
-	Ins         []*Node
-	Validations []*Node
-	OutPutReady bool
-	VisitStatus uint8
+	Rule           *Rule
+	Pool           *Pool
+	Scope          *Scope
+	Outs           []*Node
+	Ins            []*Node
+	Validations    []*Node
+	OutPutReady    bool
+	VisitStatus    uint8
+	hasEvalCommand bool
 
 	ImplicitOuts  int
 	ImplicitDeps  int
@@ -79,35 +80,36 @@ func NewNode(path string) *Node {
 
 func NewEdge(rule *Rule) *Edge {
 	return &Edge{
-		Rule:          rule,
-		Pool:          NewPool("default", 0),
-		Scope:         NewScope(nil),
-		Outs:          []*Node{},
-		Ins:           []*Node{},
-		Validations:   []*Node{},
-		OutPutReady:   false,
-		VisitStatus:   VisitedNone,
-		ImplicitOuts:  0,
-		ImplicitDeps:  0,
-		OrderOnlyDeps: 0,
+		Rule:           rule,
+		Pool:           NewPool("default", 0),
+		Scope:          NewScope(nil),
+		Outs:           []*Node{},
+		Ins:            []*Node{},
+		Validations:    []*Node{},
+		OutPutReady:    false,
+		VisitStatus:    VisitedNone,
+		hasEvalCommand: false,
+		ImplicitOuts:   0,
+		ImplicitDeps:   0,
+		OrderOnlyDeps:  0,
 	}
 }
 
-func (self *Edge) String() string {
-	s := fmt.Sprintf("\x1B[31mBUILD\x1B[0m %s: %s ", self.Outs[0].Path, self.Rule.Name)
+func (e *Edge) String() string {
+	s := fmt.Sprintf("\x1B[31mBUILD\x1B[0m %s: %s ", e.Outs[0].Path, e.Rule.Name)
 	return s
 }
 
-func (self *Edge) IsImplicit(index int) bool {
-	return index >= (len(self.Ins)-self.ImplicitDeps-self.OrderOnlyDeps) && !self.IsOrderOnly(index)
+func (e *Edge) IsImplicit(index int) bool {
+	return index >= (len(e.Ins)-e.ImplicitDeps-e.OrderOnlyDeps) && !e.IsOrderOnly(index)
 }
 
-func (self *Edge) IsOrderOnly(index int) bool {
-	return index >= len(self.Ins)-self.OrderOnlyDeps
+func (e *Edge) IsOrderOnly(index int) bool {
+	return index >= len(e.Ins)-e.OrderOnlyDeps
 }
 
-func (self *Edge) AllInputReady() bool {
-	for _, in := range self.Ins {
+func (e *Edge) AllInputReady() bool {
+	for _, in := range e.Ins {
 		if in.InEdge != nil && !in.InEdge.OutPutReady {
 			return false
 		}
@@ -115,32 +117,37 @@ func (self *Edge) AllInputReady() bool {
 	return true
 }
 
-func (self *Edge) IsPhony() bool {
-	return self.Rule.Name == "phony"
+func (e *Edge) IsPhony() bool {
+	return e.Rule.Name == "phony"
 }
 
-func (self *Edge) QueryVar(varname string) string {
+func (e *Edge) QueryVar(varname string) string {
 
 	// in & out
-	varValue := self.Rule.QueryVar(varname)
-	if varValue != nil {
-		return varValue.Eval(self.Scope)
+	if !e.hasEvalCommand {
+		e.EvalInOut()
+		e.hasEvalCommand = true
 	}
 
-	varValue = self.Scope.QueryVar(varname)
+	varValue := e.Rule.QueryVar(varname)
+	if varValue != nil {
+		return varValue.Eval(e.Scope)
+	}
+
+	varValue = e.Scope.QueryVar(varname)
 	if varValue == nil {
 		return ""
 	}
 
-	return varValue.Eval(self.Scope)
+	return varValue.Eval(e.Scope)
 }
 
-func (self *Edge) EvalInOut() {
+func (e *Edge) EvalInOut() {
 	buffer := new(strings.Builder)
 
-	explicit_in_deps := len(self.Ins) - self.ImplicitDeps - self.OrderOnlyDeps
+	explicit_in_deps := len(e.Ins) - e.ImplicitDeps - e.OrderOnlyDeps
 	for i := 0; i < explicit_in_deps; i += 1 {
-		buffer.WriteString(self.Ins[i].Path)
+		buffer.WriteString(e.Ins[i].Path)
 		buffer.WriteString(" ")
 	}
 
@@ -153,12 +160,12 @@ func (self *Edge) EvalInOut() {
 		},
 	}
 
-	self.Scope.AppendVar("in", inStr)
+	e.Scope.AppendVar("in", inStr)
 	buffer.Reset()
 
-	explicit_out_deps := len(self.Outs) - self.ImplicitOuts
+	explicit_out_deps := len(e.Outs) - e.ImplicitOuts
 	for i := 0; i < explicit_out_deps; i += 1 {
-		buffer.WriteString(self.Outs[i].Path)
+		buffer.WriteString(e.Outs[i].Path)
 		buffer.WriteString(" ")
 	}
 
@@ -171,41 +178,41 @@ func (self *Edge) EvalInOut() {
 		},
 	}
 
-	self.Scope.AppendVar("out", outStr)
+	e.Scope.AppendVar("out", outStr)
 
 	//fmt.Printf("out: %s\n", buffer.String())
 }
 
-func (self *Edge) EvalCommand() string {
-	command := self.QueryVar("command")
-	//v := command.Eval(self.Scope)
+func (e *Edge) EvalCommand() string {
+	command := e.QueryVar("command")
+	//v := command.Eval(e.Scope)
 	return command
 }
 
-func (self *Node) Stat(fs FileSystem) bool {
-	finfo, err := fs.Stat(self.Path)
+func (e *Node) Stat(fs FileSystem) bool {
+	finfo, err := fs.Stat(e.Path)
 	if err != nil {
-		self.Status.Exist = finfo.Exist
+		e.Status.Exist = finfo.Exist
 		return false
 	}
 
-	self.Status.MTime = finfo.MTime
-	self.Status.Exist = finfo.Exist
+	e.Status.MTime = finfo.MTime
+	e.Status.Exist = finfo.Exist
 	return true
 }
 
-func (self *Node) StatusKnow() bool {
-	return self.Status.Exist != ExistenceStatusUnknown
+func (e *Node) StatusKnow() bool {
+	return e.Status.Exist != ExistenceStatusUnknown
 }
 
-func (self *Node) Exist() bool {
-	return self.Status.Exist == ExistenceStatusExist
+func (e *Node) Exist() bool {
+	return e.Status.Exist == ExistenceStatusExist
 }
 
-func (self *Node) SetDirty(dirty bool) {
-	self.Status.Dirty = dirty
+func (e *Node) SetDirty(dirty bool) {
+	e.Status.Dirty = dirty
 }
 
-func (self *Node) SetPhonyMtime(t time.Time) {
-	self.Status.MTime = t
+func (e *Node) SetPhonyMtime(t time.Time) {
+	e.Status.MTime = t
 }

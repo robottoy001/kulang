@@ -31,12 +31,12 @@ func NewRule(name string) *Rule {
 	}
 }
 
-func (self *Rule) AppendVar(k string, v *VarString) {
-	self.Vars[k] = v
+func (r *Rule) AppendVar(k string, v *VarString) {
+	r.Vars[k] = v
 }
 
-func (self *Rule) QueryVar(k string) *VarString {
-	if v, ok := self.Vars[k]; ok {
+func (r *Rule) QueryVar(k string) *VarString {
+	if v, ok := r.Vars[k]; ok {
 		return v
 	}
 	return nil

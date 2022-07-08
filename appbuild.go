@@ -27,6 +27,7 @@ type BuildOption struct {
 	ConfigFile string
 	BuildDir   string
 	Targets    []string
+	Verbose    bool
 }
 
 type AppBuild struct {

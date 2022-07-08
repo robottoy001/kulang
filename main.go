@@ -28,6 +28,7 @@ import (
 var workDirectory *string
 var configFile *string
 var perfCPU *string
+var verbose *bool
 var optionFlag *flag.FlagSet
 var stop = func() {}
 
@@ -35,6 +36,7 @@ func init() {
 	optionFlag = flag.NewFlagSet("option", flag.ContinueOnError)
 	workDirectory = optionFlag.String("C", ".", "directory which include .ninja file")
 	configFile = optionFlag.String("f", "build.ninja", "specified .ninja file")
+	verbose = optionFlag.Bool("v", false, "show commandline when building")
 	perfCPU = optionFlag.String("perf", "", "enable cpu profile")
 }
 
@@ -99,6 +101,7 @@ func main() {
 	option := &BuildOption{
 		BuildDir:   *workDirectory,
 		ConfigFile: *configFile,
+		Verbose:    *verbose,
 		Targets:    []string{},
 	}
 

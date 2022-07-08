@@ -28,32 +28,32 @@ func NewScope(parent *Scope) *Scope {
 	}
 }
 
-func (self *Scope) QueryVar(k string) *VarString {
-	if v, ok := self.Vars[k]; ok {
+func (s *Scope) QueryVar(k string) *VarString {
+	if v, ok := s.Vars[k]; ok {
 		return v
 	}
 
-	if self.Parent != nil {
-		return self.Parent.QueryVar(k)
+	if s.Parent != nil {
+		return s.Parent.QueryVar(k)
 	}
 	return &VarString{Str: []_VarString{}}
 }
 
-func (self *Scope) AppendVar(k string, v *VarString) {
-	self.Vars[k] = v
+func (s *Scope) AppendVar(k string, v *VarString) {
+	s.Vars[k] = v
 }
 
-func (self *Scope) AppendRule(ruleName string, rule *Rule) {
-	self.Rules[ruleName] = rule
+func (s *Scope) AppendRule(ruleName string, rule *Rule) {
+	s.Rules[ruleName] = rule
 }
 
-func (self *Scope) QueryRule(ruleName string) *Rule {
-	if rule, ok := self.Rules[ruleName]; ok {
+func (s *Scope) QueryRule(ruleName string) *Rule {
+	if rule, ok := s.Rules[ruleName]; ok {
 		return rule
 	}
 
-	if self.Parent != nil {
-		return self.Parent.QueryRule(ruleName)
+	if s.Parent != nil {
+		return s.Parent.QueryRule(ruleName)
 	}
 	return nil
 }

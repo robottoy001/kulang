@@ -15,8 +15,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 )
 
 type StrType uint8
@@ -35,14 +35,14 @@ type VarString struct {
 	Str []_VarString
 }
 
-func (self *VarString) Append(s string, st StrType) {
-	self.Str = append(self.Str, _VarString{Str: s, Type: st})
+func (v *VarString) Append(s string, st StrType) {
+	v.Str = append(v.Str, _VarString{Str: s, Type: st})
 }
 
-func (self *VarString) Eval(scope *Scope) string {
-	var Value bytes.Buffer
+func (v *VarString) Eval(scope *Scope) string {
+	var Value strings.Builder
 
-	for _, v := range self.Str {
+	for _, v := range v.Str {
 		if v.Type == ORGINAL {
 			Value.WriteString(v.Str)
 		} else if v.Type == VARIABLE {
@@ -52,19 +52,19 @@ func (self *VarString) Eval(scope *Scope) string {
 	return Value.String()
 }
 
-func (self *VarString) String() string {
-	var Value string
-	for _, v := range self.Str {
+func (v *VarString) String() string {
+	var value strings.Builder
+	for _, v := range v.Str {
 		if v.Type == ORGINAL {
-			Value += v.Str
+			value.WriteString(v.Str)
 		} else if v.Type == VARIABLE {
-			Value += fmt.Sprintf("${%s}", v.Str)
+			value.WriteString(fmt.Sprintf("${%s}", v.Str))
 			fmt.Println(v.Str)
 		}
 	}
-	return Value
+	return value.String()
 }
 
-func (self *VarString) Empty() bool {
-	return len(self.Str) == 0
+func (v *VarString) Empty() bool {
+	return len(v.Str) == 0
 }

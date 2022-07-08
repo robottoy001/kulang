@@ -33,7 +33,7 @@ type FileSystem interface {
 type RealFileSystem struct {
 }
 
-func (self RealFileSystem) Stat(path string) (*FileInfo, error) {
+func (rf RealFileSystem) Stat(path string) (*FileInfo, error) {
 	info := &FileInfo{}
 	finfo, err := os.Stat(path)
 	if err != nil {
@@ -54,7 +54,7 @@ func (self RealFileSystem) Stat(path string) (*FileInfo, error) {
 	return info, nil
 }
 
-func (self RealFileSystem) CreateFile(p string, c string) {
+func (rf RealFileSystem) CreateFile(p string, c string) {
 
 }
 
@@ -67,7 +67,7 @@ type VirtualFileSystem struct {
 	Files map[string]*File
 }
 
-func (self VirtualFileSystem) CreateFile(path string, content string) {
+func (vf VirtualFileSystem) CreateFile(path string, content string) {
 	file := &File{
 		Content: content,
 		Info: FileInfo{
@@ -76,11 +76,11 @@ func (self VirtualFileSystem) CreateFile(path string, content string) {
 		},
 	}
 
-	self.Files[path] = file
+	vf.Files[path] = file
 }
 
-func (self VirtualFileSystem) Stat(path string) (*FileInfo, error) {
-	if v, ok := self.Files[path]; ok {
+func (vf VirtualFileSystem) Stat(path string) (*FileInfo, error) {
+	if v, ok := vf.Files[path]; ok {
 		return &v.Info, nil
 	}
 

@@ -138,7 +138,9 @@ Loop:
 			if !edge.IsPhony() {
 				r.execCmd++
 			}
+
 			fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
+			//fmt.Printf("%s\n", edge.EvalCommand())
 			go r.workProcess(edge, done)
 		}
 
