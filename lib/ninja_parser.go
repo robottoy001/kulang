@@ -225,8 +225,8 @@ func (p *NinjaParser) parseBuild() {
 	// new Edge
 	//fmt.Println(p.Scope)
 	var rule *Rule
-	if ruleName == PhonyRule.Name {
-		rule = PhonyRule
+	if ruleName == DefaultPhonyRule.Name {
+		rule = DefaultPhonyRule
 	} else {
 		rule = p.Scope.QueryRule(ruleName)
 		if rule == nil {

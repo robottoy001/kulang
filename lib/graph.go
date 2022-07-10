@@ -43,6 +43,7 @@ type Node struct {
 }
 
 type Edge struct {
+	Id             int
 	Rule           *Rule
 	Pool           *Pool
 	Scope          *Scope
@@ -74,6 +75,7 @@ func NewNode(path string) *Node {
 
 func NewEdge(rule *Rule) *Edge {
 	return &Edge{
+		Id:             utils.GetId(utils.EdgeSlot),
 		Rule:           rule,
 		Pool:           NewPool("default", 0),
 		Scope:          NewScope(nil),
@@ -90,7 +92,7 @@ func NewEdge(rule *Rule) *Edge {
 }
 
 func (e *Edge) String() string {
-	s := fmt.Sprintf("\x1B[31mBUILD\x1B[0m %s: %s ", e.Outs[0].Path, e.Rule.Name)
+	s := fmt.Sprintf("\x1B[31mBUILD\x1B[0m %s: %s", e.Outs[0].Path, e.Rule.Name)
 	return s
 }
 
@@ -112,7 +114,7 @@ func (e *Edge) AllInputReady() bool {
 }
 
 func (e *Edge) IsPhony() bool {
-	return e.Rule.Name == "phony"
+	return e.Rule.Type == PhonyRule
 }
 
 func (e *Edge) QueryVar(varname string) string {

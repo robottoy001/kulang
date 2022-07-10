@@ -74,24 +74,29 @@ func (b *AppBuild) Initialize() {
 	}
 }
 
-func (b *AppBuild) RunBuild() error {
-
-	// parser load .ninja file
-	// default, Ninja parser & scanner
+func (b *AppBuild) runParser() {
 	p := NewParser(b, b.Scope)
 	err := p.Load(path.Join(b.Option.BuildDir, b.Option.ConfigFile))
 	if err != nil {
 		log.Fatal(err)
-		return err
+		return
 	}
 
 	err = p.Parse()
 	if err != nil {
 		log.Fatal(err)
-		return err
+		return
 	}
+	return
+}
 
-	err = b._RunBuild()
+func (b *AppBuild) RunBuild() error {
+
+	// parser load .ninja file
+	// default, Ninja parser & scanner
+	b.runParser()
+
+	err := b._RunBuild()
 	if err != nil {
 		return err
 	}
@@ -99,18 +104,7 @@ func (b *AppBuild) RunBuild() error {
 }
 
 func (b *AppBuild) Targets() error {
-	p := NewParser(b, b.Scope)
-	err := p.Load(path.Join(b.Option.BuildDir, b.Option.ConfigFile))
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	err = p.Parse()
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
+	b.runParser()
 
 	for _, e := range b.Edges {
 		for _, o := range e.Outs {
@@ -310,9 +304,9 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 			return true
 		}
 
-		if most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
-			// TODO: xx restart property
-			//fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
+		restat := edge.QueryVar("restat")
+		if restat == "" && most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
+			fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
 			return true
 		}
 	}

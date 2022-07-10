@@ -15,3 +15,23 @@
 package utils
 
 var tag string = "Kulang"
+
+const (
+	EdgeSlot uint8 = iota
+	InvalidSlot
+)
+
+var ids []int = make([]int, InvalidSlot)
+
+func GetId(slot uint8) int {
+	var id int
+	switch slot {
+	case EdgeSlot:
+		id = ids[EdgeSlot]
+		id++
+		ids[EdgeSlot] = id
+	default:
+		return -1
+	}
+	return id
+}

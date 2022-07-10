@@ -62,7 +62,6 @@ func enableCPUProfile(cpuProfilePath string) (closer func()) {
 
 // kulang:
 //   build  run build script to build the target
-
 func main() {
 	sc := make(chan os.Signal)
 	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)

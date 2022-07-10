@@ -14,20 +14,28 @@
  */
 package lib
 
+const (
+	PhonyRule uint8 = iota
+	NormalRule
+)
+
 type Rule struct {
 	Name string
 	Vars map[string]*VarString
+	Type uint8
 }
 
-var PhonyRule = &Rule{
+var DefaultPhonyRule = &Rule{
 	Name: "phony",
 	Vars: map[string]*VarString{},
+	Type: PhonyRule,
 }
 
 func NewRule(name string) *Rule {
 	return &Rule{
 		Name: name,
 		Vars: make(map[string]*VarString),
+		Type: NormalRule,
 	}
 }
 
