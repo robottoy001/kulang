@@ -16,6 +16,7 @@ package utils
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 )
@@ -36,6 +37,7 @@ type FileInfo struct {
 type FileSystem interface {
 	Stat(string) (*FileInfo, error)
 	CreateFile(string, string)
+	ReadFile(string) ([]byte, error)
 }
 
 type RealFileSystem struct {
@@ -64,6 +66,14 @@ func (rf RealFileSystem) Stat(path string) (*FileInfo, error) {
 
 func (rf RealFileSystem) CreateFile(p string, c string) {
 
+}
+
+func (rf RealFileSystem) ReadFile(f string) ([]byte, error) {
+	c, err := ioutil.ReadFile(f)
+	if err != nil {
+		return []byte{}, err
+	}
+	return c, nil
 }
 
 type File struct {
@@ -97,4 +107,7 @@ func (vf VirtualFileSystem) Stat(path string) (*FileInfo, error) {
 		Exist: ExistenceStatusMissing,
 	}
 	return &info, nil
+}
+func (rf VirtualFileSystem) ReadFile(f string) ([]byte, error) {
+	return []byte{}, nil
 }

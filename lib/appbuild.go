@@ -37,24 +37,26 @@ type AppBuild struct {
 	Scope  *Scope
 
 	// all nodes map
-	Nodes    map[string]*Node
-	Defaults []*Node
-	Pools    map[string]*Pool
-	Edges    []*Edge
-	Runner   *Runner
-	Fs       utils.FileSystem
+	Nodes      map[string]*Node
+	Defaults   []*Node
+	Pools      map[string]*Pool
+	Edges      []*Edge
+	Runner     *Runner
+	Fs         utils.FileSystem
+	DepsLoader *DepsLoader
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
 	return &AppBuild{
-		Option:   option,
-		Scope:    NewScope(nil),
-		Nodes:    make(map[string]*Node),
-		Defaults: []*Node{},
-		Pools:    make(map[string]*Pool),
-		Edges:    []*Edge{},
-		Runner:   NewRunner(),
-		Fs:       utils.RealFileSystem{},
+		Option:     option,
+		Scope:      NewScope(nil),
+		Nodes:      make(map[string]*Node),
+		Defaults:   []*Node{},
+		Pools:      make(map[string]*Pool),
+		Edges:      []*Edge{},
+		Runner:     NewRunner(),
+		Fs:         utils.RealFileSystem{},
+		DepsLoader: NewDepsLoader(),
 	}
 }
 
@@ -383,6 +385,16 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		if ok := o.Stat(b.Fs); !ok {
 			fmt.Printf("out stat err(%v) %s\n", ok, o.Path)
 			return false
+		}
+	}
+
+	// load depfile
+	if !node.InEdge.depsLoaded {
+		node.InEdge.depsLoaded = true
+		err := b.DepsLoader.DepsLoad(node.InEdge)
+		if err != nil {
+			dirty = true
+			node.InEdge.depsLoaded = false
 		}
 	}
 

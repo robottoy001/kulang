@@ -57,6 +57,8 @@ type Edge struct {
 	ImplicitOuts  int
 	ImplicitDeps  int
 	OrderOnlyDeps int
+
+	depsLoaded bool
 }
 
 func NewNode(path string) *Node {
@@ -88,6 +90,7 @@ func NewEdge(rule *Rule) *Edge {
 		ImplicitOuts:   0,
 		ImplicitDeps:   0,
 		OrderOnlyDeps:  0,
+		depsLoaded:     false,
 	}
 }
 
