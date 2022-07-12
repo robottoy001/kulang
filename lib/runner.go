@@ -15,6 +15,8 @@
 package lib
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -22,8 +24,6 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
-
-	"gitee.com/kulang/utils"
 )
 
 // Runner exectuate commands
@@ -33,7 +33,18 @@ type Runner struct {
 	RunQueue []*Edge
 	runEdges int
 	execCmd  int
-	done     chan *Edge
+	done     chan *cmdResult
+	failure  bool
+}
+
+type cmdError struct {
+	command string
+	err     error
+}
+
+type cmdResult struct {
+	E *Edge
+	C *cmdError
 }
 
 const (
@@ -53,48 +64,64 @@ func NewRunner() *Runner {
 		RunQueue: []*Edge{},
 		runEdges: 0,
 		execCmd:  0,
-		done:     make(chan *Edge),
+		done:     make(chan *cmdResult),
+		failure:  false,
 	}
 }
 
-func (r *Runner) execCommand(command string) {
+func (ce *cmdError) Error() string {
+	return fmt.Sprintf("\x1B[31mError\x1B[0m:\n%s\n\x1b[31m%s\x1B[0m\n", ce.command, ce.err.Error())
+}
+
+func (r *Runner) execCommand(command string) *cmdError {
+
+	bytesBuf := bytes.NewBuffer([]byte{})
+	outWriter := bufio.NewWriter(bytesBuf)
+
 	cmd := exec.Command("sh", "-c", command)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	//cmd.Stderr = os.Stderr
+	//cmd.Stdout = os.Stdout
+	cmd.Stderr = outWriter
+	cmd.Stdout = outWriter
 	cmd.Stdin = os.Stdin
 
 	err := cmd.Run()
+	outWriter.Flush()
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m:\n%s\n\x1b[31m%s\x1B[0m\n", command, err.Error())
-		os.Exit(utils.KulangError)
+		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m: %s\n\x1b[31m%s\x1B[0m\n%s\n", command, err.Error(), bytesBuf.String())
+		return &cmdError{command: command, err: err}
 	}
+	fmt.Fprintf(os.Stdout, "%s", bytesBuf.String())
+	return &cmdError{}
 }
 
 func (r *Runner) workProcess(edge *Edge) {
 
-	if !edge.IsPhony() {
+	if edge.IsPhony() {
+		r.done <- &cmdResult{E: edge, C: &cmdError{}}
+	}
 
-		for _, o := range edge.Outs {
-			os.MkdirAll(path.Dir(o.Path), os.ModePerm)
-		}
-		// create rspfile if needed
-		rspfile := edge.QueryVar("rspfile")
-		if rspfile != "" {
-			rspContent := edge.Rule.QueryVar("rspfile_content")
-			if rspContent != nil && !rspContent.Empty() {
-				ioutil.WriteFile(rspfile, []byte(rspContent.Eval(edge.Scope)), fs.ModePerm)
-			}
-		}
-
-		r.execCommand(edge.EvalCommand())
-
-		// delete rspfile if exist
-		if rspfile != "" {
-			os.Remove(rspfile)
+	for _, o := range edge.Outs {
+		os.MkdirAll(path.Dir(o.Path), os.ModePerm)
+	}
+	// create rspfile if needed
+	rspfile := edge.QueryVar("rspfile")
+	if rspfile != "" {
+		rspContent := edge.Rule.QueryVar("rspfile_content")
+		if rspContent != nil && !rspContent.Empty() {
+			ioutil.WriteFile(rspfile, []byte(rspContent.Eval(edge.Scope)), fs.ModePerm)
 		}
 	}
 
-	r.done <- edge
+	err := r.execCommand(edge.EvalCommand())
+
+	// delete rspfile if exist
+	if rspfile != "" {
+		os.Remove(rspfile)
+	}
+
+	r.done <- &cmdResult{E: edge, C: err}
 }
 
 func (r *Runner) finished(edge *Edge) {
@@ -134,7 +161,7 @@ func (r *Runner) Start() {
 
 Loop:
 	for {
-		if len(r.RunQueue) > 0 {
+		if len(r.RunQueue) > 0 && !r.failure {
 			running++
 			edge := r.RunQueue[0]
 			r.RunQueue = r.RunQueue[1:]
@@ -147,18 +174,31 @@ Loop:
 			go r.workProcess(edge)
 		}
 
-		if running < parallel && len(r.RunQueue) > 0 {
+		if running < parallel && len(r.RunQueue) > 0 && !r.failure {
 			continue
 		}
 
 		select {
-		case e := <-r.done:
+		case ce := <-r.done:
 			running--
-			r.finished(e)
-			if running == 0 && len(r.RunQueue) <= 0 {
+			if ce.C.err != nil {
+				r.failure = true
+			}
+
+			if !r.failure {
+				r.finished(ce.E)
+			}
+
+			// if one edge fail, wait all running edge finishing.
+			if (running == 0 && len(r.RunQueue) <= 0) || (running == 0 && r.failure) {
 				break Loop
 			}
 		}
+	}
+
+	if r.failure {
+		fmt.Fprintf(os.Stderr, "\x1B[31mFailed\x1B[0m. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
+		return
 	}
 
 	fmt.Printf("\n\x1B[1;32mSucceed\x1B[0m. Executed:%d, total: %d\n", r.execCmd, r.runEdges)
