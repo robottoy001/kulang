@@ -66,6 +66,8 @@ func (b *AppBuild) Initialize() {
 		log.Fatal("Get build directory absolute path fail:", err)
 		return
 	}
+	b.Option.BuildDir = absBuildDir
+
 	err = os.MkdirAll(absBuildDir, os.ModePerm)
 	if err != nil {
 		log.Fatal("Build directory error: ", err)
