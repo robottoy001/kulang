@@ -44,6 +44,7 @@ type AppBuild struct {
 	Runner     *Runner
 	Fs         utils.FileSystem
 	DepsLoader *DepsLoader
+	BuildLog   *BuildLog
 }
 
 func NewAppBuild(option *BuildOption) *AppBuild {
@@ -57,6 +58,7 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 		Runner:     NewRunner(),
 		Fs:         utils.RealFileSystem{},
 		DepsLoader: NewDepsLoader(),
+		BuildLog:   NewBuildLog(),
 	}
 }
 
@@ -76,6 +78,9 @@ func (b *AppBuild) Initialize() {
 	if err != os.Chdir(absBuildDir) {
 		log.Fatal("Change directory to ", b.Option.BuildDir, " faild")
 	}
+
+	// load build log async
+	go b.BuildLog.Load(b.Option.BuildDir)
 }
 
 func (b *AppBuild) runParser() {
@@ -121,6 +126,7 @@ func (b *AppBuild) Targets() error {
 	return nil
 }
 
+// Query node, if not exist return nil
 func (b *AppBuild) QueryNode(path string) *Node {
 	if node, ok := b.Nodes[path]; ok {
 		return node
@@ -128,6 +134,7 @@ func (b *AppBuild) QueryNode(path string) *Node {
 	return nil
 }
 
+// Find node, if not exist then create it.
 func (b *AppBuild) FindNode(path string) *Node {
 	if node, ok := b.Nodes[path]; ok {
 		return node
@@ -292,7 +299,7 @@ func (b *AppBuild) getTargets() []*Node {
 	return nodesToBuild
 }
 
-func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
+func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 	for _, o := range edge.Outs {
 		if edge.IsPhony() {
 			if edge.Ins == nil && !o.Exist() {
@@ -312,6 +319,26 @@ func CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
 		if restat == "" && most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
 			fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
 			return true
+		}
+
+		if b.BuildLog.IsLoaded() {
+			generator := edge.QueryVar("generator")
+			item := b.BuildLog.QueryOutput(o.Path)
+			if item != nil {
+				if generator == "" /* && item.Hash != Hash(edge.Commands())*/ {
+					// todo: check command
+					// always true
+					return true
+				}
+
+				if item.MTime.After(most_recent_input.Status.MTime) {
+					return true
+				}
+			}
+
+			if item == nil && generator == "" {
+				return true
+			}
 		}
 	}
 	return false
@@ -429,7 +456,7 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	}
 
 	if !dirty {
-		dirty = CollectOutPutDitryNodes(node.InEdge, most_recent_input)
+		dirty = b.CollectOutPutDitryNodes(node.InEdge, most_recent_input)
 	}
 
 	// make dirty
