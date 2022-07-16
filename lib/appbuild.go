@@ -317,24 +317,27 @@ func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) 
 
 		restat := edge.QueryVar("restat")
 		if restat == "" && most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
-			fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
+			//fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
 			return true
 		}
 
 		if b.BuildLog.IsLoaded() {
 			generator := edge.QueryVar("generator")
 			item := b.BuildLog.QueryOutput(o.Path)
-			if item != nil {
-				if generator == "" /* && item.Hash != Hash(edge.Commands())*/ {
-					// todo: check command
-					// always true
-					return true
-				}
+			/*
+				if item != nil {
+					if generator == "" && item.Hash != Hash([]byte(edge.EvalCommand())) {
+						// todo: check command
+						// always true
+						//fmt.Printf("hash not equet: path:%s, H: %x, new:%x\n", o.Path, item.Hash, Hash([]byte(edge.EvalCommand())))
+						return true
+					}
 
-				if item.MTime.After(most_recent_input.Status.MTime) {
-					return true
+					if time.UnixMilli(item.MTime).After(most_recent_input.Status.MTime) {
+						return true
+					}
 				}
-			}
+			*/
 
 			if item == nil && generator == "" {
 				return true

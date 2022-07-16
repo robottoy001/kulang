@@ -43,22 +43,23 @@ type Node struct {
 }
 
 type Edge struct {
-	Id             int
-	Rule           *Rule
-	Pool           *Pool
-	Scope          *Scope
-	Outs           []*Node
-	Ins            []*Node
-	Validations    []*Node
-	OutPutReady    bool
-	VisitStatus    uint8
-	hasEvalCommand bool
+	Id          int
+	Rule        *Rule
+	Pool        *Pool
+	Scope       *Scope
+	Outs        []*Node
+	Ins         []*Node
+	Validations []*Node
+	OutPutReady bool
+	VisitStatus uint8
 
 	ImplicitOuts  int
 	ImplicitDeps  int
 	OrderOnlyDeps int
 
-	depsLoaded bool
+	depsLoaded   bool
+	command      string
+	hasEvalInOut bool
 }
 
 func NewNode(path string) *Node {
@@ -77,20 +78,20 @@ func NewNode(path string) *Node {
 
 func NewEdge(rule *Rule) *Edge {
 	return &Edge{
-		Id:             utils.GetId(utils.EdgeSlot),
-		Rule:           rule,
-		Pool:           NewPool("default", 0),
-		Scope:          NewScope(nil),
-		Outs:           []*Node{},
-		Ins:            []*Node{},
-		Validations:    []*Node{},
-		OutPutReady:    false,
-		VisitStatus:    VisitedNone,
-		hasEvalCommand: false,
-		ImplicitOuts:   0,
-		ImplicitDeps:   0,
-		OrderOnlyDeps:  0,
-		depsLoaded:     false,
+		Id:            utils.GetId(utils.EdgeSlot),
+		Rule:          rule,
+		Pool:          NewPool("default", 0),
+		Scope:         NewScope(nil),
+		Outs:          []*Node{},
+		Ins:           []*Node{},
+		Validations:   []*Node{},
+		OutPutReady:   false,
+		VisitStatus:   VisitedNone,
+		ImplicitOuts:  0,
+		ImplicitDeps:  0,
+		OrderOnlyDeps: 0,
+		depsLoaded:    false,
+		hasEvalInOut:  false,
 	}
 }
 
@@ -123,9 +124,9 @@ func (e *Edge) IsPhony() bool {
 func (e *Edge) QueryVar(varname string) string {
 
 	// in & out
-	if !e.hasEvalCommand {
+	if !e.hasEvalInOut {
 		e.EvalInOut()
-		e.hasEvalCommand = true
+		e.hasEvalInOut = true
 	}
 
 	varValue := e.Rule.QueryVar(varname)
@@ -183,9 +184,11 @@ func (e *Edge) EvalInOut() {
 }
 
 func (e *Edge) EvalCommand() string {
-	command := e.QueryVar("command")
-	//v := command.Eval(e.Scope)
-	return command
+	if e.command == "" {
+		command := e.QueryVar("command")
+		return command
+	}
+	return e.command
 }
 
 func (e *Node) Stat(fs utils.FileSystem) bool {

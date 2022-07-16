@@ -95,6 +95,7 @@ func cmdTargets(option *lib.BuildOption, flags Flags) (int, error) {
 
 	App := lib.NewAppBuild(option)
 	App.Initialize()
+	return utils.KulangSuccess, nil
 	err := App.Targets()
 	if err != nil {
 		return utils.KulangError, err
