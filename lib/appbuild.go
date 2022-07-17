@@ -21,6 +21,7 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"gitee.com/kulang/utils"
 )
@@ -299,15 +300,15 @@ func (b *AppBuild) getTargets() []*Node {
 	return nodesToBuild
 }
 
-func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) bool {
+func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, mostRecentInput *Node) bool {
 	for _, o := range edge.Outs {
 		if edge.IsPhony() {
 			if edge.Ins == nil && !o.Exist() {
 				return true
 			}
 			// TODO: xx update phony mtime
-			if most_recent_input != nil {
-				o.SetPhonyMtime(most_recent_input.Status.MTime)
+			if mostRecentInput != nil {
+				o.SetPhonyMtime(mostRecentInput.Status.MTime)
 			}
 			return false
 		}
@@ -316,28 +317,26 @@ func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, most_recent_input *Node) 
 		}
 
 		restat := edge.QueryVar("restat")
-		if restat == "" && most_recent_input != nil && most_recent_input.Status.MTime.After(o.Status.MTime) {
-			//fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, most_recent_input.Path, most_recent_input.Status.MTime)
+		if restat == "" && mostRecentInput != nil && mostRecentInput.Status.MTime.After(o.Status.MTime) {
+			//fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, mostRecentInput.Path, mostRecentInput.Status.MTime)
 			return true
 		}
 
 		if b.BuildLog.IsLoaded() {
 			generator := edge.QueryVar("generator")
 			item := b.BuildLog.QueryOutput(o.Path)
-			/*
-				if item != nil {
-					if generator == "" && item.Hash != Hash([]byte(edge.EvalCommand())) {
-						// todo: check command
-						// always true
-						//fmt.Printf("hash not equet: path:%s, H: %x, new:%x\n", o.Path, item.Hash, Hash([]byte(edge.EvalCommand())))
-						return true
-					}
-
-					if time.UnixMilli(item.MTime).After(most_recent_input.Status.MTime) {
-						return true
-					}
+			if item != nil {
+				if generator == "" && item.Hash != utils.Hash([]byte(edge.EvalCommand())) {
+					fmt.Printf("hash not equet: path:%s, H: %x, new:%x\n", o.Path, item.Hash, utils.Hash([]byte(edge.EvalCommand())))
+					return true
 				}
-			*/
+
+				if mostRecentInput != nil && item.MTime < mostRecentInput.Status.MTime.UnixNano() {
+					fmt.Printf("%d, - %d\n", item.MTime, mostRecentInput.Status.MTime.UnixMicro())
+					fmt.Printf("%s, - %s\n", time.UnixMicro(item.MTime/1000), mostRecentInput.Status.MTime.String())
+					return true
+				}
+			}
 
 			if item == nil && generator == "" {
 				return true
@@ -431,7 +430,7 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	}
 
 	// if any input is dirty, current node is dirty
-	var most_recent_input *Node = nil
+	var mostRecentInput *Node = nil
 	for index, i := range node.InEdge.Ins {
 		if ok := b.CollectDitryNodes(i, stack); !ok {
 			return false
@@ -445,21 +444,21 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 			if i.Status.Dirty {
 				dirty = true
 			} else {
-				if most_recent_input == nil || most_recent_input.Status.MTime.After(i.Status.MTime) {
-					most_recent_input = i
+				if mostRecentInput == nil || mostRecentInput.Status.MTime.After(i.Status.MTime) {
+					mostRecentInput = i
 				}
 			}
 		}
 	}
-	//	most_recent_input.Status.MTime, most_recent_input.Path, i.Status.MTime, i.Path)
-	if most_recent_input != nil {
+	//	mostRecentInput.Status.MTime, mostRecentInput.Path, i.Status.MTime, i.Path)
+	if mostRecentInput != nil {
 
 		//fmt.Printf("Curnode: %s Most:recent:mtime, %v - path:%s\n", node.Path,
-		//	most_recent_input.Status.MTime, most_recent_input.Path)
+		//	mostRecentInput.Status.MTime, mostRecentInput.Path)
 	}
 
 	if !dirty {
-		dirty = b.CollectOutPutDitryNodes(node.InEdge, most_recent_input)
+		dirty = b.CollectOutPutDitryNodes(node.InEdge, mostRecentInput)
 	}
 
 	// make dirty

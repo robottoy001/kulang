@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"runtime/pprof"
 	"syscall"
 
@@ -69,8 +70,12 @@ func main() {
 	go func() {
 		for s := range sc {
 			switch s {
-			case syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT:
-				fmt.Printf("Signal: %v, quit.\n", s)
+			case syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT:
+				debug.PrintStack()
+				os.Exit(utils.KulangError)
+				break
+			case syscall.SIGINT:
+				fmt.Printf("User abort: %v\n", s)
 				if *perfCPU != "" {
 					stop()
 				}

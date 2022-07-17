@@ -79,8 +79,6 @@ func (r *Runner) execCommand(command string) *cmdError {
 	outWriter := bufio.NewWriter(bytesBuf)
 
 	cmd := exec.Command("sh", "-c", command)
-	//cmd.Stderr = os.Stderr
-	//cmd.Stdout = os.Stdout
 	cmd.Stderr = outWriter
 	cmd.Stdout = outWriter
 	cmd.Stdin = os.Stdin
@@ -114,14 +112,15 @@ func (r *Runner) workProcess(edge *Edge) {
 		}
 	}
 
-	err := r.execCommand(edge.EvalCommand())
+	//err := r.execCommand(edge.EvalCommand())
 
 	// delete rspfile if exist
 	if rspfile != "" {
 		os.Remove(rspfile)
 	}
 
-	r.done <- &cmdResult{E: edge, C: err}
+	//r.done <- &cmdResult{E: edge, C: err}
+	r.done <- &cmdResult{E: edge, C: &cmdError{}}
 }
 
 func (r *Runner) finished(edge *Edge) {
@@ -170,7 +169,6 @@ Loop:
 			}
 
 			fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
-			//fmt.Printf("%s\n", edge.EvalCommand())
 			go r.workProcess(edge)
 		}
 
