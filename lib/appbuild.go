@@ -55,7 +55,7 @@ func NewAppBuild(option *BuildOption) *AppBuild {
 		Defaults:   []*Node{},
 		Pools:      make(map[string]*Pool),
 		Edges:      []*Edge{},
-		Runner:     NewRunner(),
+		Runner:     NewRunner(option),
 		Fs:         utils.RealFileSystem{},
 		DepsLoader: NewDepsLoader(),
 		BuildLog:   NewBuildLog(),

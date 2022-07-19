@@ -28,13 +28,14 @@ import (
 
 // Runner exectuate commands
 type Runner struct {
-	Run      chan *Edge
-	Status   map[*Edge]uint8
-	RunQueue []*Edge
-	runEdges int
-	execCmd  int
-	done     chan *cmdResult
-	failure  bool
+	Run         chan *Edge
+	Status      map[*Edge]uint8
+	RunQueue    []*Edge
+	buildOption *BuildOption
+	runEdges    int
+	execCmd     int
+	done        chan *cmdResult
+	failure     bool
 }
 
 type cmdError struct {
@@ -57,15 +58,16 @@ const (
 )
 
 // NewRunner create new Runner instance
-func NewRunner() *Runner {
+func NewRunner(buildOption *BuildOption) *Runner {
 	return &Runner{
-		Run:      make(chan *Edge),
-		Status:   map[*Edge]uint8{},
-		RunQueue: []*Edge{},
-		runEdges: 0,
-		execCmd:  0,
-		done:     make(chan *cmdResult),
-		failure:  false,
+		Run:         make(chan *Edge),
+		Status:      map[*Edge]uint8{},
+		RunQueue:    []*Edge{},
+		buildOption: buildOption,
+		runEdges:    0,
+		execCmd:     0,
+		done:        make(chan *cmdResult),
+		failure:     false,
 	}
 }
 
@@ -167,7 +169,11 @@ Loop:
 				r.execCmd++
 			}
 
-			fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
+			if r.buildOption.Verbose {
+				fmt.Printf("[%d/%d] %s\n", r.execCmd, r.runEdges, edge.EvalCommand())
+			} else {
+				fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
+			}
 			go r.workProcess(edge)
 		}
 
