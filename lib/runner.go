@@ -112,15 +112,14 @@ func (r *Runner) workProcess(edge *Edge) {
 		}
 	}
 
-	//err := r.execCommand(edge.EvalCommand())
+	err := r.execCommand(edge.EvalCommand())
 
 	// delete rspfile if exist
 	if rspfile != "" {
 		os.Remove(rspfile)
 	}
 
-	//r.done <- &cmdResult{E: edge, C: err}
-	r.done <- &cmdResult{E: edge, C: &cmdError{}}
+	r.done <- &cmdResult{E: edge, C: err}
 }
 
 func (r *Runner) finished(edge *Edge) {

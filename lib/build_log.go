@@ -66,7 +66,6 @@ func (b *BuildLog) Load(path string) {
 		}
 		var item LogItem = LogItem{}
 		fmt.Sscanf(line, "%d%d%d%s%x", &item.CommandStartTime, &item.CommandEndTime, &item.MTime, &item.Path, &item.Hash)
-		fmt.Printf("%x\n", item.Hash)
 		b.Items[item.Path] = &item
 	}
 

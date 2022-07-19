@@ -21,7 +21,6 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"gitee.com/kulang/utils"
 )
@@ -318,7 +317,6 @@ func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, mostRecentInput *Node) bo
 
 		restat := edge.QueryVar("restat")
 		if restat == "" && mostRecentInput != nil && mostRecentInput.Status.MTime.After(o.Status.MTime) {
-			//fmt.Printf("xxxxxxx - Path： %s, most recent: %s, %v\n", o.Path, mostRecentInput.Path, mostRecentInput.Status.MTime)
 			return true
 		}
 
@@ -327,13 +325,10 @@ func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, mostRecentInput *Node) bo
 			item := b.BuildLog.QueryOutput(o.Path)
 			if item != nil {
 				if generator == "" && item.Hash != utils.Hash([]byte(edge.EvalCommand())) {
-					fmt.Printf("hash not equet: path:%s, H: %x, new:%x\n", o.Path, item.Hash, utils.Hash([]byte(edge.EvalCommand())))
 					return true
 				}
 
 				if mostRecentInput != nil && item.MTime < mostRecentInput.Status.MTime.UnixNano() {
-					fmt.Printf("%d, - %d\n", item.MTime, mostRecentInput.Status.MTime.UnixMicro())
-					fmt.Printf("%s, - %s\n", time.UnixMicro(item.MTime/1000), mostRecentInput.Status.MTime.String())
 					return true
 				}
 			}
@@ -424,7 +419,9 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		node.InEdge.depsLoaded = true
 		err := b.DepsLoader.DepsLoad(node.InEdge)
 		if err != nil {
-			dirty = true
+			// if deps has been implemented, we set dirty flag
+			// otherwise, don't set
+			// dirty = true
 			node.InEdge.depsLoaded = false
 		}
 	}
@@ -450,12 +447,6 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 			}
 		}
 	}
-	//	mostRecentInput.Status.MTime, mostRecentInput.Path, i.Status.MTime, i.Path)
-	if mostRecentInput != nil {
-
-		//fmt.Printf("Curnode: %s Most:recent:mtime, %v - path:%s\n", node.Path,
-		//	mostRecentInput.Status.MTime, mostRecentInput.Path)
-	}
 
 	if !dirty {
 		dirty = b.CollectOutPutDitryNodes(node.InEdge, mostRecentInput)
@@ -464,14 +455,9 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 	// make dirty
 	for _, o := range node.InEdge.Outs {
 		o.SetDirty(dirty)
-		//if dirty {
-		//	fmt.Printf("set dirty %v: %s\n", o.Status.Dirty, o.Path)
-		//	fmt.Printf("dirty(%v) cur node: %s\n", dirty, node.Path)
-		//}
 	}
 
 	if dirty && !(node.InEdge.IsPhony() && len(node.InEdge.Ins) == 0) {
-		//fmt.Printf("Node %s inEdge's output is false\n", node.Path)
 		node.InEdge.OutPutReady = false
 	}
 
@@ -480,8 +466,6 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 		log.Fatal("stack is bad")
 	}
 	stack = stack[:len(stack)-1]
-
-	//identPrint(node, len(stack), "  end: %s\n", node.Path)
 
 	return true
 }
