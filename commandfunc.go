@@ -117,3 +117,15 @@ func cmdClean(option *lib.BuildOption, flags Flags) (int, error) {
 
 	return utils.KulangSuccess, nil
 }
+
+func cmdCommands(option *lib.BuildOption, flags Flags) (int, error) {
+	option.Targets = flags.Args()
+	app := lib.NewAppBuild(option)
+	app.Initialize()
+
+	err := app.Commands()
+	if err != nil {
+		return utils.KulangError, err
+	}
+	return utils.KulangSuccess, nil
+}

@@ -99,6 +99,14 @@ func init() {
 		Usage: "",
 		Short: "Show version of kulang",
 	})
+
+	RegisterCmd(Command{
+		Name:  "commands",
+		Func:  cmdCommands,
+		Usage: "[target...]",
+		Short: "Show commands required to build the target",
+	})
+
 }
 
 func RegisterCmd(cmd Command) {

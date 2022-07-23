@@ -170,14 +170,14 @@ func (b *AppBuild) AddOut(edge *Edge, path string) {
 	edge.Outs = append(edge.Outs, node)
 }
 
-func (b AppBuild) AddIn(edge *Edge, path string) {
+func (b *AppBuild) AddIn(edge *Edge, path string) {
 	node := b.FindNode(path)
 	node.OutEdges = append(node.OutEdges, edge)
 
 	edge.Ins = append(edge.Ins, node)
 }
 
-func (b AppBuild) AddValids(edge *Edge, path string) {
+func (b *AppBuild) AddValids(edge *Edge, path string) {
 	node := b.FindNode(path)
 	node.ValidOutEdges = append(node.ValidOutEdges, edge)
 
@@ -496,4 +496,42 @@ func (b *AppBuild) _RunBuild() error {
 	b.Runner.Start()
 
 	return nil
+}
+
+type VisitedEdge map[*Edge]bool
+
+func (b *AppBuild) Commands() error {
+	b.runParser()
+
+	targets := b.getTargets()
+	if len(targets) == 0 {
+		fmt.Printf("no such targets: %s\n", b.Option.Targets)
+		return nil
+	}
+
+	var visited VisitedEdge = make(VisitedEdge)
+	for _, t := range targets {
+		b.showCommand(t.InEdge, visited)
+	}
+
+	return nil
+}
+
+func (b *AppBuild) showCommand(e *Edge, visited VisitedEdge) {
+	if e == nil {
+		return
+	}
+	if _, exist := visited[e]; exist {
+		return
+	}
+
+	visited[e] = true
+
+	for _, input := range e.Ins {
+		b.showCommand(input.InEdge, visited)
+	}
+
+	if !e.IsPhony() {
+		fmt.Printf("%s\n", e.EvalCommand())
+	}
 }
