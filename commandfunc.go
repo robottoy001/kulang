@@ -25,7 +25,7 @@ import (
 func cmdHelp(option *lib.BuildOption, flags Flags) (int, error) {
 	args := flags.Args()
 	if len(args) == 0 {
-		usage := `kulang is yet another Ninja build system
+		usage := `kulang is yet another build system
 usage:
   kulang [option] <command> [args...]
 option:
