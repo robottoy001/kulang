@@ -320,19 +320,21 @@ func (b *AppBuild) CollectOutPutDitryNodes(edge *Edge, mostRecentInput *Node) bo
 			return true
 		}
 
-		if b.BuildLog.IsLoaded() {
+		if b.BuildLog != nil {
 			generator := edge.QueryVar("generator")
 			item := b.BuildLog.QueryOutput(o.Path)
 			if item != nil {
+				// if command is changed, mark dirty
 				if generator == "" && item.Hash != utils.Hash([]byte(edge.EvalCommand())) {
 					return true
 				}
-
+				// otherwise, check modify time
 				if mostRecentInput != nil && item.MTime < mostRecentInput.Status.MTime.UnixNano() {
 					return true
 				}
 			}
 
+			// if no output record, build it
 			if item == nil && generator == "" {
 				return true
 			}

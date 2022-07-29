@@ -172,7 +172,11 @@ Loop:
 			if r.buildOption.Verbose {
 				fmt.Printf("[%d/%d] %s\n", r.execCmd, r.runEdges, edge.EvalCommand())
 			} else {
-				fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, edge.QueryVar("description"))
+				description := edge.QueryVar("description")
+				if description == "" {
+					description = edge.EvalCommand()
+				}
+				fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, description)
 			}
 			go r.workProcess(edge)
 		}

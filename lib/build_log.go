@@ -26,7 +26,6 @@ import (
 type BuildLog struct {
 	Items          map[string]*LogItem
 	startBuildTime int64
-	loaded         bool
 	logFile        *os.File
 }
 
@@ -42,13 +41,17 @@ func NewBuildLog() *BuildLog {
 	return &BuildLog{
 		Items:          map[string]*LogItem{},
 		startBuildTime: time.Now().UnixMilli(),
-		loaded:         false,
 		logFile:        nil,
 	}
 }
 
 func (b *BuildLog) Load(path string) {
-	logFile, err := os.OpenFile(".ninja_log", os.O_RDONLY, os.ModePerm)
+	var logName string = ".ninja_log"
+	if _, err := os.Stat(path + "/.ninja_log"); err != nil {
+		logName = "/.kulang"
+	}
+
+	logFile, err := os.OpenFile(path+logName, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return
 	}
@@ -68,12 +71,6 @@ func (b *BuildLog) Load(path string) {
 		fmt.Sscanf(line, "%d%d%d%s%x", &item.CommandStartTime, &item.CommandEndTime, &item.MTime, &item.Path, &item.Hash)
 		b.Items[item.Path] = &item
 	}
-
-	b.loaded = true
-}
-
-func (b *BuildLog) IsLoaded() bool {
-	return b.loaded
 }
 
 func (b *BuildLog) QueryOutput(path string) *LogItem {
@@ -83,8 +80,7 @@ func (b *BuildLog) QueryOutput(path string) *LogItem {
 	return nil
 }
 
-func (b *BuildLog) WriteItem() {
-
+func (b *BuildLog) WriteItem(e *Edge, startTime int64, endTime int64) {
 }
 
 func (b *BuildLog) Close() {
