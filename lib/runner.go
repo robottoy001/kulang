@@ -126,6 +126,7 @@ func (r *Runner) workProcess(edge *Edge) {
 		}
 	}
 
+	edge.StartTime = time.Now().UnixNano()
 	start := time.Now().UnixMilli() - r.runnerStart
 	err := r.execCommand(edge.EvalCommand())
 	end := time.Now().UnixMilli() - r.runnerStart
@@ -165,7 +166,7 @@ func (r *Runner) finished(ce *cmdResult) {
 	// restat
 	restat := ce.E.QueryVar("restat")
 	generator := ce.E.QueryVar("generator")
-	logTime := ce.Start
+	logTime := ce.E.StartTime
 
 	if restat != "" || generator != "" {
 		for _, outNode := range ce.E.Outs {

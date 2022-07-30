@@ -57,6 +57,8 @@ type Edge struct {
 	ImplicitDeps  int
 	OrderOnlyDeps int
 
+	StartTime int64
+
 	depsLoaded   bool
 	command      string
 	hasEvalInOut bool
@@ -90,6 +92,7 @@ func NewEdge(rule *Rule) *Edge {
 		ImplicitOuts:  0,
 		ImplicitDeps:  0,
 		OrderOnlyDeps: 0,
+		StartTime:     0,
 		depsLoaded:    false,
 		hasEvalInOut:  false,
 	}

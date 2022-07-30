@@ -52,23 +52,27 @@ func NewBuildLog() *BuildLog {
 
 func (b *BuildLog) Load(path string) {
 	var logName string = ".ninja_log"
+	var ninjaLog bool = true
 	if _, err := os.Stat(path + "/.ninja_log"); err != nil {
 		logName = "/.kulang"
+		ninjaLog = false
 	}
 	b.logFileName = path + logName
 
-	logFile, err := os.OpenFile(path+logName, os.O_RDONLY, os.ModePerm)
+	logFile, err := os.OpenFile(b.logFileName, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return
 	}
 	defer logFile.Close()
 
-	bufLogFile := bufio.NewReader(b.logFile)
-	// ingnore ninja version
-	bufLogFile.ReadLine()
+	bufLogReader := bufio.NewReader(logFile)
+	if ninjaLog {
+		// ingnore ninja version
+		bufLogReader.ReadLine()
+	}
 
 	for {
-		line, err := bufLogFile.ReadString('\n')
+		line, err := bufLogReader.ReadString(byte('\n'))
 		if line == "" || (err != nil && err != io.EOF) {
 			break
 		}
