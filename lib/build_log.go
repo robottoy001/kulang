@@ -19,14 +19,18 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
+
+	"gitee.com/kulang/utils"
 )
 
 type BuildLog struct {
 	Items          map[string]*LogItem
 	startBuildTime int64
 	logFile        *os.File
+	logFileName    string
 }
 
 type LogItem struct {
@@ -42,6 +46,7 @@ func NewBuildLog() *BuildLog {
 		Items:          map[string]*LogItem{},
 		startBuildTime: time.Now().UnixMilli(),
 		logFile:        nil,
+		logFileName:    "",
 	}
 }
 
@@ -50,13 +55,13 @@ func (b *BuildLog) Load(path string) {
 	if _, err := os.Stat(path + "/.ninja_log"); err != nil {
 		logName = "/.kulang"
 	}
+	b.logFileName = path + logName
 
 	logFile, err := os.OpenFile(path+logName, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return
 	}
 	defer logFile.Close()
-	b.logFile = logFile
 
 	bufLogFile := bufio.NewReader(b.logFile)
 	// ingnore ninja version
@@ -80,9 +85,43 @@ func (b *BuildLog) QueryOutput(path string) *LogItem {
 	return nil
 }
 
-func (b *BuildLog) WriteItem(e *Edge, startTime int64, endTime int64) {
+func (b *BuildLog) WriteEdge(e *Edge, startTime int64, endTime int64, logTime int64) {
+	command := e.EvalCommand()
+	hash := utils.Hash([]byte(command))
+
+	var itemForWrite *LogItem
+	for _, outNode := range e.Outs {
+		if item, exists := b.Items[outNode.Path]; exists {
+			itemForWrite = item
+		} else {
+			itemForWrite = new(LogItem)
+			b.Items[outNode.Path] = itemForWrite
+		}
+
+		itemForWrite.Path = outNode.Path
+		itemForWrite.Hash = hash
+		itemForWrite.MTime = logTime
+		itemForWrite.CommandStartTime = startTime
+		itemForWrite.CommandEndTime = endTime
+
+		if b.logFile == nil {
+			file, err := os.OpenFile(b.logFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			b.logFile = file
+		}
+
+		line := fmt.Sprintf("%d\t%d\t%d\t%s\t%x\n",
+			itemForWrite.CommandStartTime, itemForWrite.CommandEndTime, itemForWrite.MTime, itemForWrite.Path, itemForWrite.Hash)
+		b.logFile.WriteString(line)
+	}
 }
 
 func (b *BuildLog) Close() {
-
+	if b.logFile != nil {
+		b.logFile.Close()
+	}
+	b.logFile = nil
 }

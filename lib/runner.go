@@ -24,6 +24,9 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"time"
+
+	"gitee.com/kulang/utils"
 )
 
 // Runner exectuate commands
@@ -36,6 +39,8 @@ type Runner struct {
 	execCmd     int
 	done        chan *cmdResult
 	failure     bool
+	runnerStart int64
+	buildLog    *BuildLog
 }
 
 type cmdError struct {
@@ -44,8 +49,10 @@ type cmdError struct {
 }
 
 type cmdResult struct {
-	E *Edge
-	C *cmdError
+	E     *Edge
+	C     *cmdError
+	Start int64
+	End   int64
 }
 
 const (
@@ -68,11 +75,16 @@ func NewRunner(buildOption *BuildOption) *Runner {
 		execCmd:     0,
 		done:        make(chan *cmdResult),
 		failure:     false,
+		buildLog:    nil,
 	}
 }
 
 func (ce *cmdError) Error() string {
 	return fmt.Sprintf("\x1B[31mError\x1B[0m:\n%s\n\x1b[31m%s\x1B[0m\n", ce.command, ce.err.Error())
+}
+
+func (r *Runner) SetBuildLog(bl *BuildLog) {
+	r.buildLog = bl
 }
 
 func (r *Runner) execCommand(command string) *cmdError {
@@ -114,23 +126,27 @@ func (r *Runner) workProcess(edge *Edge) {
 		}
 	}
 
+	start := time.Now().UnixMilli() - r.runnerStart
 	err := r.execCommand(edge.EvalCommand())
+	end := time.Now().UnixMilli() - r.runnerStart
 
 	// delete rspfile if exist
 	if rspfile != "" {
 		os.Remove(rspfile)
 	}
 
-	r.done <- &cmdResult{E: edge, C: err}
+	r.done <- &cmdResult{E: edge, C: err, Start: start, End: end}
 }
 
-func (r *Runner) finished(edge *Edge) {
-	edge.OutPutReady = true
+// TODO:
+// 1.process failed case
+func (r *Runner) finished(ce *cmdResult) {
+	ce.E.OutPutReady = true
 	// delete in status map
-	delete(r.Status, edge)
+	delete(r.Status, ce.E)
 
 	// find next
-	for _, outNode := range edge.Outs {
+	for _, outNode := range ce.E.Outs {
 		for _, outEdge := range outNode.OutEdges {
 			if _, ok := r.Status[outEdge]; !ok {
 				continue
@@ -139,12 +155,40 @@ func (r *Runner) finished(edge *Edge) {
 				if r.Status[outEdge] != StatusInit {
 					r.scheduleEdge(outEdge)
 				} else {
-					r.finished(outEdge)
+					ce.E = outEdge
+					r.finished(ce)
 				}
 			}
 		}
 	}
 
+	// restat
+	restat := ce.E.QueryVar("restat")
+	generator := ce.E.QueryVar("generator")
+	logTime := ce.Start
+
+	if restat != "" || generator != "" {
+		for _, outNode := range ce.E.Outs {
+			fs := utils.RealFileSystem{}
+			finfo, err := fs.Stat(outNode.Path)
+			if err != nil {
+				logTime = -1
+				return
+			}
+			if finfo.MTime.UnixMilli() > logTime {
+				logTime = finfo.MTime.UnixMilli()
+			}
+			if outNode.Status.MTime.Equal(finfo.MTime) && restat != "" {
+				// TODO:clean node
+				// if success, update runEdges
+			}
+		}
+	}
+
+	// record build log
+	r.buildLog.WriteEdge(ce.E, ce.Start, ce.End, logTime)
+
+	// record deps
 }
 
 // Start start run edges comand
@@ -158,6 +202,7 @@ func (r *Runner) Start() {
 	}
 
 	fmt.Printf("run total %d commands.\n", r.runEdges)
+	r.runnerStart = time.Now().UnixMilli()
 
 Loop:
 	for {
@@ -193,7 +238,7 @@ Loop:
 			}
 
 			if !r.failure {
-				r.finished(ce.E)
+				r.finished(ce)
 			}
 
 			// if one edge fail, wait all running edge finishing.

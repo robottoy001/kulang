@@ -81,6 +81,7 @@ func (b *AppBuild) Initialize() {
 
 	// load build log async
 	go b.BuildLog.Load(b.Option.BuildDir)
+	b.Runner.SetBuildLog(b.BuildLog)
 }
 
 func (b *AppBuild) runParser() {
