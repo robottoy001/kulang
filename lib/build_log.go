@@ -51,7 +51,7 @@ func NewBuildLog() *BuildLog {
 }
 
 func (b *BuildLog) Load(path string) {
-	var logName string = ".ninja_log"
+	var logName string = "/.ninja_log"
 	var ninjaLog bool = true
 	if _, err := os.Stat(path + "/.ninja_log"); err != nil {
 		logName = "/.kulang"

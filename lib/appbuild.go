@@ -80,7 +80,7 @@ func (b *AppBuild) Initialize() {
 	}
 
 	// load build log async
-	go b.BuildLog.Load(b.Option.BuildDir)
+	b.BuildLog.Load(b.Option.BuildDir)
 	b.Runner.SetBuildLog(b.BuildLog)
 }
 
@@ -386,7 +386,7 @@ func (b *AppBuild) CollectDitryNodes(node *Node, stack []*Node) bool {
 			return false
 		}
 		if exist := node.Exist(); !exist {
-			fmt.Printf("%s has build line, but missing\n", node.Path)
+			fmt.Printf("%s in built, but missing\n", node.Path)
 		}
 		// mark dirty if no exist
 		node.SetDirty(!node.Exist())
@@ -490,7 +490,7 @@ func (b *AppBuild) _RunBuild() error {
 		if t.InEdge != nil || !t.InEdge.OutPutReady {
 			err := b.Runner.AddTarget(t, nil, 0)
 			if err != nil {
-				fmt.Printf("AddTarget failed: %v\n", err)
+				fmt.Printf("Target failed: %v\n", err)
 				return err
 			}
 		}
