@@ -101,9 +101,11 @@ func (r *Runner) execCommand(command string) *cmdError {
 	outWriter.Flush()
 
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s", bytesBuf.String())
 		fmt.Fprintf(os.Stderr, "\x1B[31mError\x1B[0m: %s\n\x1b[31m%s\x1B[0m\n%s\n", command, err.Error(), bytesBuf.String())
 		return &cmdError{command: command, err: err}
 	}
+
 	fmt.Fprintf(os.Stdout, "%s", bytesBuf.String())
 	return &cmdError{}
 }
@@ -141,13 +143,13 @@ func (r *Runner) workProcess(edge *Edge) {
 
 // TODO:
 // 1.process failed case
-func (r *Runner) finished(ce *cmdResult) {
-	ce.E.OutPutReady = true
+func (r *Runner) edgeFinished(e *Edge) {
+	e.OutPutReady = true
 	// delete in status map
-	delete(r.Status, ce.E)
+	delete(r.Status, e)
 
 	// find next
-	for _, outNode := range ce.E.Outs {
+	for _, outNode := range e.Outs {
 		for _, outEdge := range outNode.OutEdges {
 			if _, ok := r.Status[outEdge]; !ok {
 				continue
@@ -156,11 +158,19 @@ func (r *Runner) finished(ce *cmdResult) {
 				if r.Status[outEdge] != StatusInit {
 					r.scheduleEdge(outEdge)
 				} else {
-					ce.E = outEdge
-					r.finished(ce)
+					r.edgeFinished(outEdge)
 				}
 			}
 		}
+	}
+}
+
+func (r *Runner) finished(ce *cmdResult) {
+
+	r.edgeFinished(ce.E)
+
+	if ce.E.IsPhony() {
+		return
 	}
 
 	// restat
@@ -224,6 +234,7 @@ Loop:
 				}
 				fmt.Printf("\r\x1B[K[%d/%d] %s", r.execCmd, r.runEdges, description)
 			}
+
 			go r.workProcess(edge)
 		}
 
